@@ -1,0 +1,18 @@
+{
+  "commands": {
+    "key": "",
+    "name": "Root",
+    "children": [
+      {
+        "key": "n",
+        "name": "[n]eovim",
+        "cmd": "echo 'it works!'"
+      },
+      {
+        "key": "i",
+        "name": "edit [i]3 config",
+        "cmd": "echo 'it works!'"
+      }
+    ]
+  }
+}

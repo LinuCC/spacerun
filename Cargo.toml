@@ -1,0 +1,9 @@
+[package]
+name = "spacerun"
+version = "0.1.0"
+authors = ["Pascal Ernst <linucc@linu.cc>"]
+
+[dependencies]
+conrod = { version = "0.61.1", features = ["glium", "winit"] }
+serde_json = "1.0"
+find_folder = "0.3.0"
