@@ -5,6 +5,7 @@ mod commands;
 
 use conrod::{Ui};
 use conrod::backend::glium::glium::{self, Surface};
+use std::process::{Command as CliCommand};
 use commands::{Command, CommandNode, CommandLeaf};
 
 
@@ -62,48 +63,47 @@ impl EventLoop {
     pub fn needs_update(&mut self) {
         self.ui_needs_update = true;
     }
-
 }
 
-/**
- * Generates a vector of CommandLeafs from a command to display it as a list.
- */
-fn flatten_command_to_leafs(command: &Command) -> Vec<CommandLeaf> {
-  match command {
-    Command::Leaf(command_leaf) => {
-      vec![command_leaf.clone()]
-    }
-    Command::Node(command_node) => {
-      match command_node.children {
-        Some(ref children) => {
-          children.iter().map(|child| {
-            match child {
-              Command::Leaf(child_leaf) => child_leaf.clone(),
-              Command::Node(child_node) => CommandLeaf::from(child_node)
-            }
-          }).collect()
+#[derive(Clone)]
+struct CommandDisplay {
+    key: String,
+    name: String,
+}
+
+impl<'a> From<&'a CommandNode> for CommandDisplay {
+    fn from(node: &'a CommandNode) -> Self {
+        CommandDisplay {
+            key: node.key.clone(),
+            name: node.name.clone(),
         }
-        None => {
-          vec![CommandLeaf::from(command_node)]
-        }
-      }
     }
-  }
+}
+
+impl<'a> From<&'a CommandLeaf> for CommandDisplay {
+    fn from(node: &'a CommandLeaf) -> Self {
+        CommandDisplay {
+            key: node.key.clone(),
+            name: node.name.clone(),
+        }
+    }
 }
 
 fn main() {
-  const WIDTH: u32 = 150;
-  const HEIGHT: u32 = 600;
+  const WIDTH: u32 = 500;
+  const HEIGHT: u32 = 400;
 
   // --- Setup Commands
   let loaded_commands = commands::get_commands().unwrap();
+  let mut selected_command: &Command = &loaded_commands;
   println!("Commands Loaded!");
 
   // --- Setup Conrod
   let mut events_loop = glium::glutin::EventsLoop::new();
   let window = glium::glutin::WindowBuilder::new()
-                  .with_title("Hello Conrod")
-                  .with_dimensions((WIDTH, HEIGHT).into());
+                  .with_title("Spacerun")
+                  .with_dimensions((WIDTH, HEIGHT).into())
+                  .with_decorations(false);
   let context = glium::glutin::ContextBuilder::new()
                   .with_vsync(true)
                   .with_multisampling(4);
@@ -145,13 +145,49 @@ fn main() {
                       },
                       ..
                   } => break 'main,
+                  glium::glutin::WindowEvent::KeyboardInput { input, ..  } => {
+                    match input.virtual_keycode {
+                      Some(glium::glutin::VirtualKeyCode::C) if input.state == glium::glutin::ElementState::Pressed => {
+                        println!("Snatched yo' keyboard input!")
+                      },
+                      Some(virtual_keycode) if input.state == glium::glutin::ElementState::Pressed => {
+                        let maybe_string_keycode = virtual_keycode_to_string(virtual_keycode);
+                        if let Some(string_keycode) = maybe_string_keycode {
+                          if let Command::Node(command_node) = selected_command {
+                            if let Some(ref children) = command_node.children {
+                              let find_child = children.iter().find(|&child| {
+                                match child {
+                                  Command::Node(child_node) => child_node.key == string_keycode,
+                                  Command::Leaf(child_leaf) => child_leaf.key == string_keycode
+                                }
+                              });
+                              if let Some(found_child) = find_child {
+                                match found_child {
+                                  Command::Node(_) => selected_command = found_child,
+                                  Command::Leaf(child_leaf) => {
+                                    CliCommand::new("sh")
+                                            .arg("-c")
+                                            .arg(&child_leaf.cmd)
+                                            .spawn()
+                                            .expect("process failed to execute");
+                                    break 'main;
+                                  }
+                                }
+                              };
+                            };
+                          };
+                        };
+                      }
+                      _ => (),
+                    }
+                  }
                   _ => (),
               },
               _ => (),
           }
       }
 
-      set_ui(ui.set_widgets(), &loaded_commands, &ids);
+      set_ui(ui.set_widgets(), &selected_command, &ids);
 
 
       // Render the `Ui` and then display it on the screen.
@@ -163,48 +199,66 @@ fn main() {
           target.finish().unwrap();
       }
   }
-
-
-  // let mut vbox = VerticalBox::new(&ui);
-  // vbox.set_padded(&ui, true);
-  //
-  // let mut button = Button::new(&ui, "Button");
-  // button.on_clicked(&ui, {
-  //   let ui = ui.clone();
-  //   move |btn| {
-  //     btn.set_text(&ui, "Clicked!");
-  //   }
-  // });
-  //
-  // let mut quit_button = Button::new(&ui, "Quit");
-  // quit_button.on_clicked(&ui, {
-  //   let ui = ui.clone();
-  //   move |_| {
-  //     ui.quit();
-  //   }
-  // });
-  //
-  // vbox.append(&ui, button, LayoutStrategy::Compact);
-  // vbox.append(&ui, quit_button, LayoutStrategy::Compact);
-  //
-
-  // let command_labels: Vec<Label> = loaded_commands.iter().map(|command| {
-  //   Label::new(&ui, command[1])
-  // }).collect::<Vec<_>>();
-
-  // let command_labels: Vec<Label> = example_commands.iter().map(|command| {
-  //   Label::new(&ui, command[1])
-  // }).collect::<Vec<_>>();
-
-  // let command_labels = labels_from_command(&ui, loaded_commands);
-  // for label in command_labels {
-  //   vbox.append(&ui, label, LayoutStrategy::Compact);
-  // }
-  //
-  // win.set_child(&ui, vbox);
-  // win.show(&ui);
-  // ui.main();
 }
+
+/**
+ * Generates a vector of CommandLeafs from a command to display it as a list.
+ */
+fn flatten_command_to_leafs(command: &Command) -> Vec<CommandDisplay> {
+  match command {
+    Command::Leaf(command_leaf) => {
+      vec![CommandDisplay::from(command_leaf)]
+    }
+    Command::Node(command_node) => {
+      match command_node.children {
+        Some(ref children) => {
+          children.iter().map(|child| {
+            match child {
+              Command::Leaf(child_leaf) => CommandDisplay::from(child_leaf),
+              Command::Node(child_node) => CommandDisplay::from(child_node)
+            }
+          }).collect()
+        }
+        None => {
+          vec![CommandDisplay::from(command_node)]
+        }
+      }
+    }
+  }
+}
+
+fn virtual_keycode_to_string(virtual_keycode: glium::glutin::VirtualKeyCode) -> Option<String> {
+  match virtual_keycode {
+    glium::glutin::VirtualKeyCode::A => Some(String::from("a")),
+    glium::glutin::VirtualKeyCode::B => Some(String::from("b")),
+    glium::glutin::VirtualKeyCode::C => Some(String::from("c")),
+    glium::glutin::VirtualKeyCode::D => Some(String::from("d")),
+    glium::glutin::VirtualKeyCode::E => Some(String::from("e")),
+    glium::glutin::VirtualKeyCode::F => Some(String::from("f")),
+    glium::glutin::VirtualKeyCode::G => Some(String::from("g")),
+    glium::glutin::VirtualKeyCode::H => Some(String::from("h")),
+    glium::glutin::VirtualKeyCode::I => Some(String::from("i")),
+    glium::glutin::VirtualKeyCode::J => Some(String::from("j")),
+    glium::glutin::VirtualKeyCode::K => Some(String::from("k")),
+    glium::glutin::VirtualKeyCode::L => Some(String::from("l")),
+    glium::glutin::VirtualKeyCode::M => Some(String::from("m")),
+    glium::glutin::VirtualKeyCode::N => Some(String::from("n")),
+    glium::glutin::VirtualKeyCode::O => Some(String::from("o")),
+    glium::glutin::VirtualKeyCode::P => Some(String::from("p")),
+    glium::glutin::VirtualKeyCode::Q => Some(String::from("q")),
+    glium::glutin::VirtualKeyCode::R => Some(String::from("r")),
+    glium::glutin::VirtualKeyCode::S => Some(String::from("s")),
+    glium::glutin::VirtualKeyCode::T => Some(String::from("t")),
+    glium::glutin::VirtualKeyCode::U => Some(String::from("u")),
+    glium::glutin::VirtualKeyCode::V => Some(String::from("v")),
+    glium::glutin::VirtualKeyCode::W => Some(String::from("w")),
+    glium::glutin::VirtualKeyCode::X => Some(String::from("x")),
+    glium::glutin::VirtualKeyCode::Y => Some(String::from("y")),
+    glium::glutin::VirtualKeyCode::Z => Some(String::from("z")),
+    _ => None
+  }
+}
+
 
 // Declare the `WidgetId`s and instantiate the widgets.
 fn set_ui(ref mut ui: conrod::UiCell, command: &Command, ids: &Ids) {
@@ -213,7 +267,6 @@ fn set_ui(ref mut ui: conrod::UiCell, command: &Command, ids: &Ids) {
     widget::Canvas::new().color(conrod::color::DARK_CHARCOAL).set(ids.canvas, ui);
 
     let displayed_leafs = flatten_command_to_leafs(command);
-    println!("displayed leafs {}", displayed_leafs.len());
 
     let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
         .item_size(50.0)

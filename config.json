@@ -4,6 +4,17 @@
     "name": "Root",
     "children": [
       {
+        "key": "w",
+        "name": "[w]e must go deeper!",
+        "children": [
+          {
+            "key": "n",
+            "name": "[n]ested thing",
+            "cmd": "alacritty -e \"/bin/bash\" -ilc \"edit-temp-script 1\""
+          }
+        ]
+      },
+      {
         "key": "n",
         "name": "[n]eovim",
         "cmd": "echo 'it works!'"
