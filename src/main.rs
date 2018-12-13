@@ -1,12 +1,9 @@
-extern crate find_folder;
-#[macro_use] extern crate conrod;
-
 mod commands;
 
-use conrod::{Ui};
+use conrod::{widget_ids};
 use conrod::backend::glium::glium::{self, Surface};
 use std::process::{Command as CliCommand};
-use commands::{Command, CommandNode, CommandLeaf};
+use crate::commands::{Command, CommandNode, CommandLeaf};
 
 
 widget_ids! {

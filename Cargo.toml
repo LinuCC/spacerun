@@ -3,6 +3,8 @@ name = "spacerun"
 version = "0.1.0"
 authors = ["Pascal Ernst <linucc@linu.cc>"]
 
+edition = "2018"
+
 [dependencies]
 conrod = { version = "0.61.1", features = ["glium", "winit"] }
 serde_json = "1.0"
