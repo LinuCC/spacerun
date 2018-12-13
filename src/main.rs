@@ -152,30 +152,25 @@ fn main() {
                     match input.virtual_keycode {
                       Some(virtual_keycode) if input.state == glium::glutin::ElementState::Pressed => {
                         let maybe_string_keycode = virtual_keycode_to_string(virtual_keycode);
-                        if let Some(string_keycode) = maybe_string_keycode {
-                          if let Command::Node(command_node) = selected_command {
-                            if let Some(ref children) = command_node.children {
-                              let find_child = children.iter().find(|&child| {
-                                match child {
-                                  Command::Node(child_node) => child_node.key == string_keycode,
-                                  Command::Leaf(child_leaf) => child_leaf.key == string_keycode
-                                }
-                              });
-                              if let Some(found_child) = find_child {
-                                match found_child {
-                                  Command::Node(_) => selected_command = found_child,
-                                  Command::Leaf(child_leaf) => {
+                          if let (Some(ref string_keycode), Command::Node(command_node)) = (maybe_string_keycode, selected_command) {
+                            let found_child = command_node.children.iter().find(|&child| {
+                              match child {
+                                Command::Node(child_node) => child_node.key == *string_keycode,
+                                Command::Leaf(child_leaf) => child_leaf.key == *string_keycode
+                              }
+                            });
+                            match found_child {
+                                Some(found_child @ Command::Node(_)) => selected_command = found_child,
+                                Some(Command::Leaf(child_leaf)) => {
                                     CliCommand::new("sh")
-                                            .arg("-c")
-                                            .arg(&child_leaf.cmd)
-                                            .spawn()
-                                            .expect("process failed to execute");
+                                        .arg("-c")
+                                        .arg(&child_leaf.cmd)
+                                        .spawn()
+                                        .expect("process failed to execute");
                                     break 'main;
-                                  }
                                 }
-                              };
-                            };
-                          };
+                                None => {}
+                            }
                         };
                       }
                       _ => (),
@@ -210,19 +205,12 @@ fn flatten_command_to_leafs(command: &Command) -> Vec<CommandDisplay> {
       vec![CommandDisplay::from(command_leaf)]
     }
     Command::Node(command_node) => {
-      match command_node.children {
-        Some(ref children) => {
-          children.iter().map(|child| {
+        command_node.children.iter().map(|child| {
             match child {
-              Command::Leaf(child_leaf) => CommandDisplay::from(child_leaf),
-              Command::Node(child_node) => CommandDisplay::from(child_node)
+                Command::Leaf(child_leaf) => CommandDisplay::from(child_leaf),
+                Command::Node(child_node) => CommandDisplay::from(child_node)
             }
-          }).collect()
-        }
-        None => {
-          vec![CommandDisplay::from(command_node)]
-        }
-      }
+        }).collect()
     }
   }
 }
