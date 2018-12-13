@@ -9,7 +9,7 @@ pub struct CommandNode {
     pub key: String,
     pub name: String,
     pub cmd: Option<String>,
-    pub children: Option<Vec<Command>>,
+    pub children: Vec<Command>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
