@@ -1,12 +1,10 @@
-extern crate directories;
-extern crate serde_json;
-
-use self::directories::ProjectDirs;
-use self::serde_json::{Map, Value};
+use directories::ProjectDirs;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
+use serde_derive::{Deserialize};
 
+#[derive(Debug, Clone, Deserialize)]
 pub struct CommandNode {
     pub key: String,
     pub name: String,
@@ -14,7 +12,7 @@ pub struct CommandNode {
     pub children: Option<Vec<Command>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CommandLeaf {
     pub key: String,
     pub name: String,
@@ -51,9 +49,16 @@ impl From<Box<CommandNode>> for CommandLeaf {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
 pub enum Command {
     Node(CommandNode),
     Leaf(CommandLeaf),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ConfigBase {
+    commands: Command
 }
 
 pub fn get_commands() -> Result<Command, Box<Error>> {
@@ -63,88 +68,11 @@ pub fn get_commands() -> Result<Command, Box<Error>> {
         .config_dir()
         .to_owned();
     config_dir.push("config.json");
-    println!("CFG dir {}", config_dir.to_str().to_owned().unwrap());
+    println!("CFG dir {:?}", config_dir);
     let mut file = File::open(config_dir)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     println!("contents: {}", contents);
-    let json_value: Value = serde_json::from_str(&contents)?;
-
-    match json_value {
-        Value::Object(map) => {
-            let command = parse_json_value(map.get("commands").unwrap())
-                .unwrap()
-                .unwrap();
-            Ok(command)
-        }
-        _ => {
-            panic!("dafuq is dis json config");
-        }
-    }
+    let config_base: ConfigBase = serde_json::from_str(&contents)?;
+    Ok(config_base.commands)
 }
-
-fn parse_json_value(value: &Value) -> Result<Option<Command>, ()> {
-    return match value {
-        Value::Object(map) => {
-            if map.contains_key("children") {
-                let children = match map.get("children") {
-                    Some(children_value) => {
-                        let children_commands = match children_value {
-                            Value::Array(children_values) => children_values
-                                .iter()
-                                .map(|child_value| parse_json_value(child_value).unwrap().unwrap())
-                                .collect::<Vec<Command>>(),
-                            _ => {
-                                return Err(());
-                            }
-                        };
-                        Some(children_commands)
-                    }
-                    None => None,
-                };
-
-                let node = CommandNode {
-                    key: get_string_json_value(map, String::from("key"))
-                        .unwrap()
-                        .to_owned(),
-                    name: get_string_json_value(map, String::from("name"))
-                        .unwrap()
-                        .to_owned(),
-                    cmd: get_string_json_value(map, String::from("cmd")),
-                    children: children,
-                };
-                Ok(Some(Command::Node(node)))
-            } else {
-                let leaf = CommandLeaf {
-                    key: get_string_json_value(map, String::from("key")).unwrap(),
-                    name: get_string_json_value(map, String::from("name")).unwrap(),
-                    cmd: get_string_json_value(map, String::from("cmd")).unwrap(),
-                };
-                Ok(Some(Command::Leaf(leaf)))
-            }
-        }
-        _ => Err(()),
-    };
-}
-
-fn get_string_json_value(map: &Map<String, Value>, key: String) -> Option<String> {
-    match map.get(&key)? {
-        Value::String(string) => Some(string.to_owned()),
-        _ => None,
-    }
-}
-
-//
-// lazy_static! {
-// 	static ref SETTINGS: RwLock<Config> = RwLock::new(Config::default());
-// }
-//
-// fn try_main() -> Result<(), Box<Error>> {
-// 	// Set property
-// 	SETTINGS.write()?.set("property", 42)?;
-//
-// 	// Get property
-// 	println!("property: {}", SETTINGS.read()?.get::<i32>("property")?);
-//
-// 	Ok(())
-// }

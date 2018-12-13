@@ -1,12 +1,14 @@
 [package]
 name = "spacerun"
 version = "0.1.0"
-authors = ["Pascal Ernst <linucc@linu.cc>"]
+authors = ["Pascal Ernst <linucc@linu.cc>", "Florian Diebold <flodiebold@gmail.com>"]
 
 edition = "2018"
 
 [dependencies]
 conrod = { version = "0.61.1", features = ["glium", "winit"] }
+serde = "1"
+serde_derive = "1"
 serde_json = "1.0"
 find_folder = "0.3.0"
 directories = "1.0"

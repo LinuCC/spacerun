@@ -86,6 +86,8 @@ impl<'a> From<&'a CommandLeaf> for CommandDisplay {
     }
 }
 
+static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
+
 // struct AppState {
 //
 // }
@@ -118,9 +120,7 @@ fn main() {
   let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
 
   // Add a `Font` to the `Ui`'s `font::Map` from file.
-  let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();
-  let font_path = assets.join("/home/linucc/code/rust/spacerun/assets/fonts/NotoSans/NotoSans-Regular.ttf");
-  ui.fonts.insert_from_file(font_path).unwrap();
+  ui.fonts.insert(conrod::text::Font::from_bytes(FONT).unwrap());
 
 
   // The image map describing each of our widget->image mappings (in our case, none).
