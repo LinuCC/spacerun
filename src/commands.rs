@@ -1,5 +1,7 @@
+extern crate directories;
 extern crate serde_json;
 
+use self::directories::ProjectDirs;
 use self::serde_json::{Map, Value};
 use std::error::Error;
 use std::fs::File;
@@ -56,7 +58,13 @@ pub enum Command {
 
 pub fn get_commands() -> Result<Command, Box<Error>> {
     println!("Oh hai!!!!");
-    let mut file = File::open("config.json")?;
+    let mut config_dir = ProjectDirs::from("cc", "linu", "spacerun")
+        .unwrap()
+        .config_dir()
+        .to_owned();
+    config_dir.push("config.json");
+    println!("CFG dir {}", config_dir.to_str().to_owned().unwrap());
+    let mut file = File::open(config_dir)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     println!("contents: {}", contents);

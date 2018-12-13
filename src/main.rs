@@ -1,5 +1,5 @@
-#[macro_use] extern crate conrod;
 extern crate find_folder;
+#[macro_use] extern crate conrod;
 
 mod commands;
 
@@ -89,6 +89,12 @@ impl<'a> From<&'a CommandLeaf> for CommandDisplay {
     }
 }
 
+// struct AppState {
+//
+// }
+//
+// fn key_pressed
+
 fn main() {
   const WIDTH: u32 = 500;
   const HEIGHT: u32 = 400;
@@ -116,7 +122,7 @@ fn main() {
 
   // Add a `Font` to the `Ui`'s `font::Map` from file.
   let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();
-  let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
+  let font_path = assets.join("/home/linucc/code/rust/spacerun/assets/fonts/NotoSans/NotoSans-Regular.ttf");
   ui.fonts.insert_from_file(font_path).unwrap();
 
 
@@ -147,9 +153,6 @@ fn main() {
                   } => break 'main,
                   glium::glutin::WindowEvent::KeyboardInput { input, ..  } => {
                     match input.virtual_keycode {
-                      Some(glium::glutin::VirtualKeyCode::C) if input.state == glium::glutin::ElementState::Pressed => {
-                        println!("Snatched yo' keyboard input!")
-                      },
                       Some(virtual_keycode) if input.state == glium::glutin::ElementState::Pressed => {
                         let maybe_string_keycode = virtual_keycode_to_string(virtual_keycode);
                         if let Some(string_keycode) = maybe_string_keycode {
