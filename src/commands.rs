@@ -1,8 +1,8 @@
 use directories::ProjectDirs;
+use serde_derive::Deserialize;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use serde_derive::{Deserialize};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandNode {
@@ -58,7 +58,7 @@ pub enum Command {
 
 #[derive(Debug, Clone, Deserialize)]
 struct ConfigBase {
-    commands: Command
+    commands: Command,
 }
 
 pub fn get_commands() -> Result<Command, Box<Error>> {
