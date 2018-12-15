@@ -1,9 +1,11 @@
-mod commands;
+use std::process::Command as CliCommand;
 
-use crate::commands::{Command, CommandLeaf, CommandNode};
 use conrod::backend::glium::glium::{self, Surface};
 use conrod::widget_ids;
-use std::process::Command as CliCommand;
+
+use crate::commands::{Command, CommandLeaf, CommandNode};
+
+mod commands;
 
 widget_ids! {
     struct Ids { canvas, list }
@@ -70,31 +72,25 @@ struct CommandDisplay {
     name: String,
 }
 
-impl<'a> From<&'a CommandNode> for CommandDisplay {
-    fn from(node: &'a CommandNode) -> Self {
+impl From<CommandNode> for CommandDisplay {
+    fn from(node: CommandNode) -> Self {
         CommandDisplay {
-            key: node.key.clone(),
-            name: node.name.clone(),
+            key: node.key,
+            name: node.name,
         }
     }
 }
 
-impl<'a> From<&'a CommandLeaf> for CommandDisplay {
-    fn from(node: &'a CommandLeaf) -> Self {
+impl From<CommandLeaf> for CommandDisplay {
+    fn from(node: CommandLeaf) -> Self {
         CommandDisplay {
-            key: node.key.clone(),
-            name: node.name.clone(),
+            key: node.key,
+            name: node.name,
         }
     }
 }
 
 static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
-
-// struct AppState {
-//
-// }
-//
-// fn key_pressed
 
 fn main() {
     const WIDTH: u32 = 500;
@@ -208,50 +204,52 @@ fn main() {
 }
 
 /**
- * Generates a vector of CommandLeafs from a command to display it as a list.
+ * Generates a vector of CommandDisplays from a command to display it as a list.
  */
 fn flatten_command_to_leafs(command: &Command) -> Vec<CommandDisplay> {
     match command {
-        Command::Leaf(command_leaf) => vec![CommandDisplay::from(command_leaf)],
+        Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
         Command::Node(command_node) => command_node
             .children
             .iter()
             .map(|child| match child {
-                Command::Leaf(child_leaf) => CommandDisplay::from(child_leaf),
-                Command::Node(child_node) => CommandDisplay::from(child_node),
+                Command::Leaf(child_leaf) => child_leaf.clone().into(),
+                Command::Node(child_node) => child_node.clone().into(),
             })
             .collect(),
     }
 }
 
-fn virtual_keycode_to_string(virtual_keycode: glium::glutin::VirtualKeyCode) -> Option<String> {
+fn virtual_keycode_to_string(
+    virtual_keycode: glium::glutin::VirtualKeyCode,
+) -> Option<&'static str> {
     match virtual_keycode {
-        glium::glutin::VirtualKeyCode::A => Some(String::from("a")),
-        glium::glutin::VirtualKeyCode::B => Some(String::from("b")),
-        glium::glutin::VirtualKeyCode::C => Some(String::from("c")),
-        glium::glutin::VirtualKeyCode::D => Some(String::from("d")),
-        glium::glutin::VirtualKeyCode::E => Some(String::from("e")),
-        glium::glutin::VirtualKeyCode::F => Some(String::from("f")),
-        glium::glutin::VirtualKeyCode::G => Some(String::from("g")),
-        glium::glutin::VirtualKeyCode::H => Some(String::from("h")),
-        glium::glutin::VirtualKeyCode::I => Some(String::from("i")),
-        glium::glutin::VirtualKeyCode::J => Some(String::from("j")),
-        glium::glutin::VirtualKeyCode::K => Some(String::from("k")),
-        glium::glutin::VirtualKeyCode::L => Some(String::from("l")),
-        glium::glutin::VirtualKeyCode::M => Some(String::from("m")),
-        glium::glutin::VirtualKeyCode::N => Some(String::from("n")),
-        glium::glutin::VirtualKeyCode::O => Some(String::from("o")),
-        glium::glutin::VirtualKeyCode::P => Some(String::from("p")),
-        glium::glutin::VirtualKeyCode::Q => Some(String::from("q")),
-        glium::glutin::VirtualKeyCode::R => Some(String::from("r")),
-        glium::glutin::VirtualKeyCode::S => Some(String::from("s")),
-        glium::glutin::VirtualKeyCode::T => Some(String::from("t")),
-        glium::glutin::VirtualKeyCode::U => Some(String::from("u")),
-        glium::glutin::VirtualKeyCode::V => Some(String::from("v")),
-        glium::glutin::VirtualKeyCode::W => Some(String::from("w")),
-        glium::glutin::VirtualKeyCode::X => Some(String::from("x")),
-        glium::glutin::VirtualKeyCode::Y => Some(String::from("y")),
-        glium::glutin::VirtualKeyCode::Z => Some(String::from("z")),
+        glium::glutin::VirtualKeyCode::A => Some("a"),
+        glium::glutin::VirtualKeyCode::B => Some("b"),
+        glium::glutin::VirtualKeyCode::C => Some("c"),
+        glium::glutin::VirtualKeyCode::D => Some("d"),
+        glium::glutin::VirtualKeyCode::E => Some("e"),
+        glium::glutin::VirtualKeyCode::F => Some("f"),
+        glium::glutin::VirtualKeyCode::G => Some("g"),
+        glium::glutin::VirtualKeyCode::H => Some("h"),
+        glium::glutin::VirtualKeyCode::I => Some("i"),
+        glium::glutin::VirtualKeyCode::J => Some("j"),
+        glium::glutin::VirtualKeyCode::K => Some("k"),
+        glium::glutin::VirtualKeyCode::L => Some("l"),
+        glium::glutin::VirtualKeyCode::M => Some("m"),
+        glium::glutin::VirtualKeyCode::N => Some("n"),
+        glium::glutin::VirtualKeyCode::O => Some("o"),
+        glium::glutin::VirtualKeyCode::P => Some("p"),
+        glium::glutin::VirtualKeyCode::Q => Some("q"),
+        glium::glutin::VirtualKeyCode::R => Some("r"),
+        glium::glutin::VirtualKeyCode::S => Some("s"),
+        glium::glutin::VirtualKeyCode::T => Some("t"),
+        glium::glutin::VirtualKeyCode::U => Some("u"),
+        glium::glutin::VirtualKeyCode::V => Some("v"),
+        glium::glutin::VirtualKeyCode::W => Some("w"),
+        glium::glutin::VirtualKeyCode::X => Some("x"),
+        glium::glutin::VirtualKeyCode::Y => Some("y"),
+        glium::glutin::VirtualKeyCode::Z => Some("z"),
         _ => None,
     }
 }
