@@ -1,8 +1,9 @@
-use directories::ProjectDirs;
-use serde_derive::Deserialize;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
+
+use directories::ProjectDirs;
+use serde_derive::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandNode {
@@ -17,36 +18,6 @@ pub struct CommandLeaf {
     pub key: String,
     pub name: String,
     pub cmd: String,
-}
-
-impl From<CommandNode> for CommandLeaf {
-    fn from(node: CommandNode) -> Self {
-        CommandLeaf {
-            key: node.key,
-            name: node.name,
-            cmd: node.cmd.unwrap(),
-        }
-    }
-}
-
-impl<'a> From<&'a CommandNode> for CommandLeaf {
-    fn from(node: &'a CommandNode) -> Self {
-        CommandLeaf {
-            key: node.key.clone(),
-            name: node.name.clone(),
-            cmd: node.cmd.clone().unwrap(),
-        }
-    }
-}
-
-impl From<Box<CommandNode>> for CommandLeaf {
-    fn from(node: Box<CommandNode>) -> Self {
-        CommandLeaf {
-            key: node.key.clone(),
-            name: node.name.clone(),
-            cmd: node.cmd.unwrap().clone(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
