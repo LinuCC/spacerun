@@ -27,3 +27,8 @@ specified.
       (Also solvable by using a CLI interface (not yet implemented), but not as cool?)
 * [ ] Server mode, instance is constantly running in background so the JSON won't need to be parsed
       each time the window should be displayed.
+* [ ] Breadcrumbs, showing the path you went down.
+* [ ] Show name and description of the current tree as a title / subtitle of the window
+* [ ] More key-value pairs for command leafs!
+    * [ ] "description" to find / understand your nodes & commands, even after a long night.
+    * [ ] "clip" copying a string to clipboard.

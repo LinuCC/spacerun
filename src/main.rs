@@ -1,11 +1,11 @@
 use std::process::Command as CliCommand;
-
 use conrod::backend::glium::glium::{self, Surface};
 use conrod::widget_ids;
 
 use crate::commands::{Command, CommandLeaf, CommandNode};
 
 mod commands;
+mod bindings;
 
 widget_ids! {
     struct Ids { canvas, list }
@@ -75,7 +75,7 @@ struct CommandDisplay {
 impl From<CommandNode> for CommandDisplay {
     fn from(node: CommandNode) -> Self {
         CommandDisplay {
-            key: node.key,
+            key: node.key.to_string(),
             name: node.name,
         }
     }
@@ -84,7 +84,7 @@ impl From<CommandNode> for CommandDisplay {
 impl From<CommandLeaf> for CommandDisplay {
     fn from(node: CommandLeaf) -> Self {
         CommandDisplay {
-            key: node.key,
+            key: node.key.to_string(),
             name: node.name,
         }
     }
@@ -97,9 +97,11 @@ fn main() {
     const HEIGHT: u32 = 400;
 
     // --- Setup Commands
-    let loaded_commands = commands::get_commands().unwrap();
+    let loaded_commands = commands::get_commands()
+      .expect("Error loading the commands. Check your configuration for inconsistencies.");
     let mut selected_command: &Command = &loaded_commands;
     println!("Commands Loaded!");
+    println!("{:?}", loaded_commands);
 
     // --- Setup Conrod
     let mut events_loop = glium::glutin::EventsLoop::new();
@@ -133,7 +135,6 @@ fn main() {
                 ui.handle_event(event);
                 event_loop.needs_update();
             }
-
             match event {
                 glium::glutin::Event::WindowEvent { event, .. } => match event {
                     // Break from the loop upon `Escape`.
@@ -145,41 +146,39 @@ fn main() {
                                 ..
                             },
                         ..
-                    } => break 'main,
+                    } => {
+                      break 'main
+                    },
                     glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
                         match input.virtual_keycode {
                             Some(virtual_keycode)
                                 if input.state == glium::glutin::ElementState::Pressed =>
                             {
-                                let maybe_string_keycode =
-                                    virtual_keycode_to_string(virtual_keycode);
-                                if let (Some(ref string_keycode), Command::Node(command_node)) =
-                                    (maybe_string_keycode, selected_command)
-                                {
-                                    let found_child =
-                                        command_node.children.iter().find(|&child| match child {
-                                            Command::Node(child_node) => {
-                                                child_node.key == *string_keycode
-                                            }
-                                            Command::Leaf(child_leaf) => {
-                                                child_leaf.key == *string_keycode
-                                            }
-                                        });
-                                    match found_child {
-                                        Some(found_child @ Command::Node(_)) => {
-                                            selected_command = found_child
+                              if let Command::Node(command_node) = selected_command {
+                                let found_child =
+                                    command_node.children.iter().find(|&child| match child {
+                                        Command::Node(child_node) => {
+                                            child_node.key == virtual_keycode
                                         }
-                                        Some(Command::Leaf(child_leaf)) => {
-                                            CliCommand::new("sh")
-                                                .arg("-c")
-                                                .arg(&child_leaf.cmd)
-                                                .spawn()
-                                                .expect("process failed to execute");
-                                            break 'main;
+                                        Command::Leaf(child_leaf) => {
+                                            child_leaf.key == virtual_keycode
                                         }
-                                        None => {}
+                                    });
+                                match found_child {
+                                    Some(found_child @ Command::Node(_)) => {
+                                        selected_command = found_child
                                     }
-                                };
+                                    Some(Command::Leaf(child_leaf)) => {
+                                        CliCommand::new("sh")
+                                            .arg("-c")
+                                            .arg(&child_leaf.cmd)
+                                            .spawn()
+                                            .expect("process failed to execute");
+                                        break 'main;
+                                    }
+                                    None => {}
+                                }
+                              }
                             }
                             _ => (),
                         }
@@ -217,40 +216,6 @@ fn flatten_command_to_leafs(command: &Command) -> Vec<CommandDisplay> {
                 Command::Node(child_node) => child_node.clone().into(),
             })
             .collect(),
-    }
-}
-
-fn virtual_keycode_to_string(
-    virtual_keycode: glium::glutin::VirtualKeyCode,
-) -> Option<&'static str> {
-    match virtual_keycode {
-        glium::glutin::VirtualKeyCode::A => Some("a"),
-        glium::glutin::VirtualKeyCode::B => Some("b"),
-        glium::glutin::VirtualKeyCode::C => Some("c"),
-        glium::glutin::VirtualKeyCode::D => Some("d"),
-        glium::glutin::VirtualKeyCode::E => Some("e"),
-        glium::glutin::VirtualKeyCode::F => Some("f"),
-        glium::glutin::VirtualKeyCode::G => Some("g"),
-        glium::glutin::VirtualKeyCode::H => Some("h"),
-        glium::glutin::VirtualKeyCode::I => Some("i"),
-        glium::glutin::VirtualKeyCode::J => Some("j"),
-        glium::glutin::VirtualKeyCode::K => Some("k"),
-        glium::glutin::VirtualKeyCode::L => Some("l"),
-        glium::glutin::VirtualKeyCode::M => Some("m"),
-        glium::glutin::VirtualKeyCode::N => Some("n"),
-        glium::glutin::VirtualKeyCode::O => Some("o"),
-        glium::glutin::VirtualKeyCode::P => Some("p"),
-        glium::glutin::VirtualKeyCode::Q => Some("q"),
-        glium::glutin::VirtualKeyCode::R => Some("r"),
-        glium::glutin::VirtualKeyCode::S => Some("s"),
-        glium::glutin::VirtualKeyCode::T => Some("t"),
-        glium::glutin::VirtualKeyCode::U => Some("u"),
-        glium::glutin::VirtualKeyCode::V => Some("v"),
-        glium::glutin::VirtualKeyCode::W => Some("w"),
-        glium::glutin::VirtualKeyCode::X => Some("x"),
-        glium::glutin::VirtualKeyCode::Y => Some("y"),
-        glium::glutin::VirtualKeyCode::Z => Some("z"),
-        _ => None,
     }
 }
 
