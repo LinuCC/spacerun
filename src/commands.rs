@@ -5,9 +5,11 @@ use std::io::prelude::*;
 use directories::ProjectDirs;
 use serde_derive::Deserialize;
 
+use crate::bindings::KeyCode;
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandNode {
-    pub key: String,
+    pub key: KeyCode,
     pub name: String,
     pub cmd: Option<String>,
     pub children: Vec<Command>,
@@ -15,7 +17,7 @@ pub struct CommandNode {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandLeaf {
-    pub key: String,
+    pub key: KeyCode,
     pub name: String,
     pub cmd: String,
 }
@@ -33,7 +35,6 @@ struct ConfigBase {
 }
 
 pub fn get_commands() -> Result<Command, Box<Error>> {
-    println!("Oh hai!!!!");
     let mut config_dir = ProjectDirs::from("cc", "linu", "spacerun")
         .unwrap()
         .config_dir()
