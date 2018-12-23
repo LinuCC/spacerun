@@ -3,8 +3,10 @@ use conrod::backend::glium::glium::{self, Surface};
 use conrod::widget_ids;
 use conrod::backend::glium::glium::glutin::os::unix::WindowBuilderExt;
 
-use crate::commands::{Command, CommandLeaf, CommandNode};
+use crate::commands::{Command};
+use crate::config::{SpacerunConfig};
 
+mod config;
 mod commands;
 mod bindings;
 
@@ -67,30 +69,6 @@ impl EventLoop {
     }
 }
 
-#[derive(Clone)]
-struct CommandDisplay {
-    key: String,
-    name: String,
-}
-
-impl From<CommandNode> for CommandDisplay {
-    fn from(node: CommandNode) -> Self {
-        CommandDisplay {
-            key: node.key.to_string(),
-            name: node.name,
-        }
-    }
-}
-
-impl From<CommandLeaf> for CommandDisplay {
-    fn from(node: CommandLeaf) -> Self {
-        CommandDisplay {
-            key: node.key.to_string(),
-            name: node.name,
-        }
-    }
-}
-
 static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
 
 fn main() {
@@ -99,11 +77,11 @@ fn main() {
     const HEIGHT: u32 = 400;
 
     // --- Setup Commands
-    let loaded_commands = commands::get_commands()
-      .expect("Error loading the commands. Check your configuration for inconsistencies.");
-    let mut selected_command: &Command = &loaded_commands;
+    let config = config::load_config()
+      .expect("Error loading the config. Check your configuration for inconsistencies.");
+    let mut selected_command: &Command = &config.commands;
     println!("Commands Loaded!");
-    println!("{:?}", loaded_commands);
+    println!("{:?}", config.commands);
 
     // --- Setup Conrod
     let mut events_loop = glium::glutin::EventsLoop::new();
@@ -196,7 +174,7 @@ fn main() {
             }
         }
 
-        set_ui(ui.set_widgets(), &selected_command, &ids);
+        set_ui(ui.set_widgets(), &config, &selected_command, &ids);
 
         // Render the `Ui` and then display it on the screen.
         if let Some(primitives) = ui.draw_if_changed() {
@@ -209,32 +187,16 @@ fn main() {
     }
 }
 
-/**
- * Generates a vector of CommandDisplays from a command to display it as a list.
- */
-fn flatten_command_to_leafs(command: &Command) -> Vec<CommandDisplay> {
-    match command {
-        Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
-        Command::Node(command_node) => command_node
-            .children
-            .iter()
-            .map(|child| match child {
-                Command::Leaf(child_leaf) => child_leaf.clone().into(),
-                Command::Node(child_node) => child_node.clone().into(),
-            })
-            .collect(),
-    }
-}
-
 // Declare the `WidgetId`s and instantiate the widgets.
-fn set_ui(ref mut ui: conrod::UiCell, command: &Command, ids: &Ids) {
+fn set_ui(ref mut ui: conrod::UiCell, config: &SpacerunConfig, command: &Command, ids: &Ids) {
     use conrod::{widget, Colorable, Labelable, Positionable, Sizeable, Widget};
+    use crate::commands::displayable_command_children;
 
     widget::Canvas::new()
         .color(conrod::color::DARK_CHARCOAL)
         .set(ids.canvas, ui);
 
-    let displayed_leafs = flatten_command_to_leafs(command);
+    let displayed_leafs = displayable_command_children(command);
 
     let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
         .item_size(50.0)
@@ -249,6 +211,7 @@ fn set_ui(ref mut ui: conrod::UiCell, command: &Command, ids: &Ids) {
         let toggle = widget::Toggle::new(true)
             .label(label)
             .label_color(conrod::color::WHITE)
+            .label_font_size(config.font_size.unwrap_or(14))
             .color(conrod::color::LIGHT_BLUE);
         item.set(toggle, ui);
     }
