@@ -12,7 +12,9 @@ specified.
   * [ ] On font missing (add fallback?)
 * [ ] Add styling config options
   * [ ] Font config
-* [ ] Backspace to go back up one layer
+* [ ] Global command layer for configurable hotkeys
+  * [ ] Backspace to go back up one layer
+  * [ ] Escape exits
 
 ## Cool & shiny things to implement
 
