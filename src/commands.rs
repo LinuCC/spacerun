@@ -1,8 +1,3 @@
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-
-use directories::ProjectDirs;
 use serde_derive::Deserialize;
 
 use crate::bindings::KeyCode;
@@ -29,22 +24,46 @@ pub enum Command {
     Leaf(CommandLeaf),
 }
 
-#[derive(Debug, Clone, Deserialize)]
-struct ConfigBase {
-    commands: Command,
+/**
+ * Easily displayable command
+ */
+#[derive(Clone)]
+pub struct CommandDisplay {
+    pub key: String,
+    pub name: String,
 }
 
-pub fn get_commands() -> Result<Command, Box<Error>> {
-    let mut config_dir = ProjectDirs::from("cc", "linu", "spacerun")
-        .unwrap()
-        .config_dir()
-        .to_owned();
-    config_dir.push("config.json");
-    println!("CFG dir {:?}", config_dir);
-    let mut file = File::open(config_dir)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    println!("contents: {}", contents);
-    let config_base: ConfigBase = serde_json::from_str(&contents)?;
-    Ok(config_base.commands)
+impl From<CommandNode> for CommandDisplay {
+    fn from(node: CommandNode) -> Self {
+        CommandDisplay {
+            key: node.key.to_string(),
+            name: node.name,
+        }
+    }
+}
+
+impl From<CommandLeaf> for CommandDisplay {
+    fn from(node: CommandLeaf) -> Self {
+        CommandDisplay {
+            key: node.key.to_string(),
+            name: node.name,
+        }
+    }
+}
+
+/**
+ * Generates a vector of CommandDisplays from a command to display it as a list.
+ */
+pub fn displayable_command_children(command: &Command) -> Vec<CommandDisplay> {
+    match command {
+        Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
+        Command::Node(command_node) => command_node
+            .children
+            .iter()
+            .map(|child| match child {
+                Command::Leaf(child_leaf) => child_leaf.clone().into(),
+                Command::Node(child_node) => child_node.clone().into(),
+            })
+            .collect(),
+    }
 }
