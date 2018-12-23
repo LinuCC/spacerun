@@ -1,6 +1,7 @@
 use std::process::Command as CliCommand;
 use conrod::backend::glium::glium::{self, Surface};
 use conrod::widget_ids;
+use conrod::backend::glium::glium::glutin::os::unix::WindowBuilderExt;
 
 use crate::commands::{Command, CommandLeaf, CommandNode};
 
@@ -93,6 +94,7 @@ impl From<CommandLeaf> for CommandDisplay {
 static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
 
 fn main() {
+
     const WIDTH: u32 = 500;
     const HEIGHT: u32 = 400;
 
@@ -108,6 +110,11 @@ fn main() {
     let window = glium::glutin::WindowBuilder::new()
         .with_title("Spacerun")
         .with_dimensions((WIDTH, HEIGHT).into())
+        // Mainly so that the window gets opened nicely in i3, but there are
+        // probably better fitting window types.
+        .with_x11_window_type(glium::glutin::os::unix::XWindowType::Toolbar)
+        // Untested as i3 ignores it, should help usage with other WMs
+        .with_always_on_top(true)
         .with_decorations(false);
     let context = glium::glutin::ContextBuilder::new()
         .with_vsync(true)
