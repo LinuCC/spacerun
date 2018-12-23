@@ -1,72 +1,21 @@
-use std::process::Command as CliCommand;
 use conrod::backend::glium::glium::{self, Surface};
 use conrod::widget_ids;
 use conrod::backend::glium::glium::glutin::os::unix::WindowBuilderExt;
 
 use crate::commands::{Command};
 use crate::config::{SpacerunConfig};
+use crate::view::{handle_event};
+use crate::event_loop::EventLoop;
+use crate::view::SpacerunEvent::{SelectCommand, CloseApplication};
 
 mod config;
 mod commands;
 mod bindings;
+mod view;
+mod event_loop;
 
 widget_ids! {
     struct Ids { canvas, list }
-}
-
-pub struct EventLoop {
-    ui_needs_update: bool,
-    last_update: std::time::Instant,
-}
-
-impl EventLoop {
-    pub fn new() -> Self {
-        EventLoop {
-            last_update: std::time::Instant::now(),
-            ui_needs_update: true,
-        }
-    }
-
-    /// Produce an iterator yielding all available events.
-    pub fn next(
-        &mut self,
-        events_loop: &mut glium::glutin::EventsLoop,
-    ) -> Vec<glium::glutin::Event> {
-        // We don't want to loop any faster than 60 FPS, so wait until it has been at least 16ms
-        // since the last yield.
-        let last_update = self.last_update;
-        let sixteen_ms = std::time::Duration::from_millis(16);
-        let duration_since_last_update = std::time::Instant::now().duration_since(last_update);
-        if duration_since_last_update < sixteen_ms {
-            std::thread::sleep(sixteen_ms - duration_since_last_update);
-        }
-
-        // Collect all pending events.
-        let mut events = Vec::new();
-        events_loop.poll_events(|event| events.push(event));
-
-        // If there are no events and the `Ui` does not need updating, wait for the next event.
-        if events.is_empty() && !self.ui_needs_update {
-            events_loop.run_forever(|event| {
-                events.push(event);
-                glium::glutin::ControlFlow::Break
-            });
-        }
-
-        self.ui_needs_update = false;
-        self.last_update = std::time::Instant::now();
-
-        events
-    }
-
-    /// Notifies the event loop that the `Ui` requires another update whether or not there are any
-    /// pending events.
-    ///
-    /// This is primarily used on the occasion that some part of the `Ui` is still animating and
-    /// requires further updates to do so.
-    pub fn needs_update(&mut self) {
-        self.ui_needs_update = true;
-    }
 }
 
 static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
@@ -115,63 +64,18 @@ fn main() {
     'main: loop {
         // Handle all events.
         for event in event_loop.next(&mut events_loop) {
-            // Use the `winit` backend feature to convert the winit event to a conrod one.
-            if let Some(event) = conrod::backend::winit::convert_event(event.clone(), &display) {
-                ui.handle_event(event);
-                event_loop.needs_update();
-            }
-            match event {
-                glium::glutin::Event::WindowEvent { event, .. } => match event {
-                    // Break from the loop upon `Escape`.
-                    glium::glutin::WindowEvent::CloseRequested
-                    | glium::glutin::WindowEvent::KeyboardInput {
-                        input:
-                            glium::glutin::KeyboardInput {
-                                virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => {
-                      break 'main
-                    },
-                    glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
-                        match input.virtual_keycode {
-                            Some(virtual_keycode)
-                                if input.state == glium::glutin::ElementState::Pressed =>
-                            {
-                              if let Command::Node(command_node) = selected_command {
-                                let found_child =
-                                    command_node.children.iter().find(|&child| match child {
-                                        Command::Node(child_node) => {
-                                            child_node.key == virtual_keycode
-                                        }
-                                        Command::Leaf(child_leaf) => {
-                                            child_leaf.key == virtual_keycode
-                                        }
-                                    });
-                                match found_child {
-                                    Some(found_child @ Command::Node(_)) => {
-                                        selected_command = found_child
-                                    }
-                                    Some(Command::Leaf(child_leaf)) => {
-                                        CliCommand::new("sh")
-                                            .arg("-c")
-                                            .arg(&child_leaf.cmd)
-                                            .spawn()
-                                            .expect("process failed to execute");
-                                        break 'main;
-                                    }
-                                    None => {}
-                                }
-                              }
-                            }
-                            _ => (),
-                        }
-                    }
-                    _ => (),
-                },
-                _ => (),
-            }
+          // Use the `winit` backend feature to convert the winit event to a conrod one.
+          if let Some(event) = conrod::backend::winit::convert_event(event.clone(), &display) {
+              ui.handle_event(event);
+              event_loop.needs_update();
+          }
+          match handle_event(&event, &selected_command) {
+              Some(SelectCommand(new_selected_command)) => {
+                selected_command = new_selected_command;
+              },
+              Some(CloseApplication) => break 'main,
+              None => ()
+          }
         }
 
         set_ui(ui.set_widgets(), &config, &selected_command, &ids);
