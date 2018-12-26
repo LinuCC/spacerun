@@ -19,8 +19,8 @@ fn main() {
     // --- Setup Commands
     let config = config::load_config()
       .expect("Error loading the config. Check your configuration for inconsistencies.");
-    println!("Commands Loaded!");
-    println!("{:?}", config.commands);
+    eprintln!("Commands Loaded!");
+    eprintln!("{:?}", config.commands);
 
     let mut state = State::new(config);
 
@@ -63,7 +63,7 @@ fn main() {
           }
           match handle_event(&event, &state) {
               Some(SelectCommand(new_selected_command)) => {
-                state.select_command(new_selected_command.to_owned());
+                state.selected_command = new_selected_command.to_owned();
               },
               Some(CloseApplication) => break 'main,
               None => ()
@@ -83,8 +83,8 @@ fn main() {
             if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
                 let new_window_height = render_rect.h() as u32;
                 if new_window_height != state.window_height {
-                    println!("Updating window size.");
-                    state.set_window_height(new_window_height);
+                    eprintln!("Updating window size.");
+                    state.window_height = new_window_height;
                     display.gl_window().set_inner_size((state.window_width, state.window_height).into());
                 }
             }

@@ -52,7 +52,7 @@ impl From<CommandLeaf> for CommandDisplay {
 }
 
 impl Command {
-    pub fn displayable_children(self: &Command) -> Vec<CommandDisplay> {
+    pub fn displayable_children(&self) -> Vec<CommandDisplay> {
         match self {
             Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
             Command::Node(command_node) => command_node

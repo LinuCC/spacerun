@@ -20,12 +20,4 @@ impl State {
             config: config,
         }
     }
-
-    pub fn select_command(self: &mut State, new_command: Command) -> () {
-        self.selected_command = new_command;
-    }
-
-    pub fn set_window_height(self: &mut State, window_height: u32) -> () {
-        self.window_height = window_height;
-    }
 }
