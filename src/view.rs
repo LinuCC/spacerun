@@ -5,7 +5,7 @@ use conrod::backend::glium::glium::backend::glutin::glutin::Event;
 use conrod::{color, widget_ids};
 
 use crate::commands::Command;
-use crate::config::SpacerunConfig;
+use crate::state::State;
 
 widget_ids! {
     pub struct Ids {
@@ -26,7 +26,7 @@ pub enum SpacerunEvent<'a> {
 
 static DEFAULT_FONT_SIZE: u32 = 14;
 
-pub fn handle_event<'a>(event: &Event, selected_command: &'a Command) -> Option<SpacerunEvent<'a>> {
+pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent<'a>> {
     match event {
         glium::glutin::Event::WindowEvent { event, .. } => match event {
             // Break from the loop upon `Escape`.
@@ -40,11 +40,9 @@ pub fn handle_event<'a>(event: &Event, selected_command: &'a Command) -> Option<
                 ..
             } => return Some(SpacerunEvent::CloseApplication),
             glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
-                match input.virtual_keycode {
-                    Some(virtual_keycode)
-                        if input.state == glium::glutin::ElementState::Pressed =>
-                    {
-                        if let Command::Node(command_node) = selected_command {
+                if let Some(virtual_keycode) = input.virtual_keycode {
+                    if input.state == glium::glutin::ElementState::Pressed {
+                        if let Command::Node(command_node) = &state.selected_command {
                             let found_child =
                                 command_node.children.iter().find(|&child| match child {
                                     Command::Node(child_node) => child_node.key == virtual_keycode,
@@ -66,7 +64,6 @@ pub fn handle_event<'a>(event: &Event, selected_command: &'a Command) -> Option<
                             }
                         }
                     }
-                    _ => (),
                 }
             }
             _ => (),
@@ -77,12 +74,7 @@ pub fn handle_event<'a>(event: &Event, selected_command: &'a Command) -> Option<
 }
 
 // Declare the `WidgetId`s and instantiate the widgets.
-pub fn set_ui(
-    ref mut ui: conrod::UiCell,
-    config: &SpacerunConfig,
-    command: &Command,
-    ids: &mut Ids,
-) {
+pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids: &mut Ids) {
     use conrod::{widget, Colorable, Positionable, Sizeable, Widget};
 
     widget::Canvas::new()
@@ -107,7 +99,9 @@ pub fn set_ui(
 
     // Generate list displaying the commands
     let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
-        .item_size(item_height_by_font_size(config.font_size.unwrap_or(DEFAULT_FONT_SIZE)).into())
+        .item_size(
+            item_height_by_font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE)).into(),
+        )
         .scrollbar_on_top()
         .middle_of(ids.canvas)
         .w_of(ids.canvas)
@@ -138,13 +132,13 @@ pub fn set_ui(
         widget::Text::new(&displayed_leafs[i].key)
             .middle_of(ids.command_list_item_key_canvas[i])
             .color(color::WHITE)
-            .font_size(config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+            .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
             .set(ids.command_list_item_key_widget[i], ui);
 
         widget::Text::new(&displayed_leafs[i].name)
             .mid_left_of(ids.command_list_item_name_canvas[i])
             .color(color::WHITE)
-            .font_size(config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+            .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
             .set(ids.command_list_item_name_widget[i], ui);
     }
 
