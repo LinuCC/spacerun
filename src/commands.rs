@@ -51,19 +51,18 @@ impl From<CommandLeaf> for CommandDisplay {
     }
 }
 
-/**
- * Generates a vector of CommandDisplays from a command to display it as a list.
- */
-pub fn displayable_command_children(command: &Command) -> Vec<CommandDisplay> {
-    match command {
-        Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
-        Command::Node(command_node) => command_node
-            .children
-            .iter()
-            .map(|child| match child {
-                Command::Leaf(child_leaf) => child_leaf.clone().into(),
-                Command::Node(child_node) => child_node.clone().into(),
-            })
-            .collect(),
+impl Command {
+    pub fn displayable_children(self: &Command) -> Vec<CommandDisplay> {
+        match self {
+            Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
+            Command::Node(command_node) => command_node
+                .children
+                .iter()
+                .map(|child| match child {
+                    Command::Leaf(child_leaf) => child_leaf.clone().into(),
+                    Command::Node(child_node) => child_node.clone().into(),
+                })
+                .collect(),
+        }
     }
 }
