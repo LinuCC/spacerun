@@ -1,29 +1,34 @@
 {
   "font_size": 14,
   "commands": {
-    "key": "",
+    "shortcut": "r",
     "name": "Root",
     "children": [
       {
-        "key": "w",
+        "shortcut": "w",
         "name": "[w]e must go deeper!",
         "children": [
           {
-            "key": "n",
+            "shortcut": "n",
             "name": "[n]ested thing",
             "cmd": "alacritty -e \"/bin/bash\" -ilc \"edit-temp-script 1\""
           }
         ]
       },
       {
-        "key": "n",
-        "name": "[n]eovim",
+        "shortcut": "C-M-S-L-a",
+        "name": "big shortcut (Ctrl, Meta/Alt, Shift, Super)",
         "cmd": "echo 'it works!'"
       },
       {
-        "key": "i",
-        "name": "edit [i]3 config",
+        "shortcut": "1",
+        "name": "Use numbers, too!",
         "cmd": "echo 'it works!'"
+      },
+      {
+        "shortcut": "f",
+        "name": "firefox",
+        "cmd": "firefox"
       }
     ]
   }

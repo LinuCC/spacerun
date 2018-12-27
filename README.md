@@ -2,16 +2,28 @@
 
 Emacs / Spacemacs like runner, where you hit one key and get send down a tree
 of successive keys to execute a command / shortcut you have previously
-specified.
+configured.
+
+# Setup
+
+* Clone it
+* `cargo build --release` inside the cloned directory
+* Copy `config.json` to your users config directory (for example to `~/.config/spacerun/config.json` for linux)
+* Create a keyboard shortcut in your system to start `<spacerun-dir>/target/release/spacerun`
+* Edit the JSON file with your shortcuts
+* Have fun :rocket:
 
 # ToDos
 
 * [ ] Generate default config file if it is missing
 * [ ] Replace `unwrap()`s with real error handling & good error messages
-  * [ ] On config missing / unreadable
-  * [ ] On font missing (add fallback?)
+  * [ ] Errors
+      * [ ] On config missing / unreadable
+  * [ ] Show errors in window, it should not fail to show at least something when run
 * [ ] Add styling config options
   * [ ] Font config
+      * [/] Size
+  * [ ] colors
 * [ ] Global command layer for configurable hotkeys
   * [ ] Backspace to go back up one layer
   * [ ] Escape exits
@@ -31,6 +43,7 @@ specified.
       each time the window should be displayed.
 * [ ] Breadcrumbs, showing the path you went down.
 * [ ] Show name and description of the current tree as a title / subtitle of the window
+* [ ] Radial menu instead of list as option (Because radial menus are awesome!)
 * [ ] More key-value pairs for command leafs!
     * [ ] "description" to find / understand your nodes & commands, even after a long night.
     * [ ] "clip" copying a string to clipboard.
