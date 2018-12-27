@@ -146,21 +146,19 @@ pub struct Shortcut {
 
 impl Display for Shortcut {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let string = &mut String::new();
         if self.modifiers.ctrl {
-            string.push_str("ctrl+");
+            write!(f, "C-")?;
         }
         if self.modifiers.alt {
-            string.push_str("alt+");
+            write!(f, "M-")?;
         }
         if self.modifiers.shift {
-            string.push_str("shift+");
+            write!(f, "S-")?;
         }
         if self.modifiers.logo {
-            string.push_str("super+");
+            write!(f, "L-")?;
         }
-        string.push_str(&format!("{}", self.key_code));
-        write!(f, "{}", string)
+        write!(f, "{}", self.key_code)
     }
 }
 
@@ -187,13 +185,13 @@ impl<'de> de::Visitor<'de> for ShortcutVisitor {
     where
         E: de::Error,
     {
-        let keys: Vec<&str> = value.split('+').collect::<Vec<&str>>();;
+        let keys: Vec<&str> = value.split('-').collect::<Vec<&str>>();;
         if let Some((key_code_string, modifier_strings)) = keys.split_last() {
             let modifiers_state = ModifiersState {
-                ctrl: modifier_strings.contains(&"ctrl"),
-                alt: modifier_strings.contains(&"alt"),
-                shift: modifier_strings.contains(&"shift"),
-                logo: modifier_strings.contains(&"super"),
+                ctrl: modifier_strings.contains(&"C"),
+                alt: modifier_strings.contains(&"M"),
+                shift: modifier_strings.contains(&"S"),
+                logo: modifier_strings.contains(&"L"),
             };
             let key_code_result = key_code_from_str(key_code_string);
             match key_code_result {
