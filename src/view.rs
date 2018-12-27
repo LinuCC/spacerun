@@ -4,6 +4,7 @@ use conrod::backend::glium::glium;
 use conrod::backend::glium::glium::backend::glutin::glutin::Event;
 use conrod::{color, widget_ids};
 
+use crate::bindings::Shortcut;
 use crate::commands::Command;
 use crate::state::State;
 
@@ -42,14 +43,18 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
             glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if input.state == glium::glutin::ElementState::Pressed {
+                        let pressed_shortcut = Shortcut {
+                            modifiers: input.modifiers,
+                            key_code: virtual_keycode.into(),
+                        };
                         if let Command::Node(command_node) = &state.selected_command {
                             let found_child =
                                 command_node.children.iter().find(|&child| match child {
                                     Command::Node(child_node) => {
-                                        child_node.shortcut == (&input.modifiers, &virtual_keycode)
+                                        child_node.shortcut == pressed_shortcut
                                     }
                                     Command::Leaf(child_leaf) => {
-                                        child_leaf.shortcut == (&input.modifiers, &virtual_keycode)
+                                        child_leaf.shortcut == pressed_shortcut
                                     }
                                 });
                             match found_child {
