@@ -12,9 +12,9 @@ widget_ids! {
         canvas,
         command_list,
         command_list_item_canvas[],
-        command_list_item_key_canvas[],
+        command_list_item_shortcut_canvas[],
         command_list_item_name_canvas[],
-        command_list_item_key_widget[],
+        command_list_item_shortcut_widget[],
         command_list_item_name_widget[],
     }
 }
@@ -45,8 +45,12 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
                         if let Command::Node(command_node) = &state.selected_command {
                             let found_child =
                                 command_node.children.iter().find(|&child| match child {
-                                    Command::Node(child_node) => child_node.key == virtual_keycode,
-                                    Command::Leaf(child_leaf) => child_leaf.key == virtual_keycode,
+                                    Command::Node(child_node) => {
+                                        child_node.shortcut == (&input.modifiers, &virtual_keycode)
+                                    }
+                                    Command::Leaf(child_leaf) => {
+                                        child_leaf.shortcut == (&input.modifiers, &virtual_keycode)
+                                    }
                                 });
                             match found_child {
                                 Some(found_child @ Command::Node(_)) => {
@@ -87,11 +91,11 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
     if displayed_leafs.len() != ids.command_list_item_canvas.len() {
         ids.command_list_item_canvas
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-        ids.command_list_item_key_canvas
+        ids.command_list_item_shortcut_canvas
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
         ids.command_list_item_name_canvas
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-        ids.command_list_item_key_widget
+        ids.command_list_item_shortcut_widget
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
         ids.command_list_item_name_widget
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
@@ -114,7 +118,7 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
         let text_container_canvas = widget::Canvas::new().pad(5.0);
         let child_canvas = [
             (
-                ids.command_list_item_key_canvas[i],
+                ids.command_list_item_shortcut_canvas[i],
                 text_container_canvas
                     .clone()
                     .length_weight(0.2)
@@ -129,11 +133,11 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
 
         item.set(canvas, ui);
 
-        widget::Text::new(&displayed_leafs[i].key)
-            .middle_of(ids.command_list_item_key_canvas[i])
+        widget::Text::new(&displayed_leafs[i].shortcut)
+            .middle_of(ids.command_list_item_shortcut_canvas[i])
             .color(color::WHITE)
             .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
-            .set(ids.command_list_item_key_widget[i], ui);
+            .set(ids.command_list_item_shortcut_widget[i], ui);
 
         widget::Text::new(&displayed_leafs[i].name)
             .mid_left_of(ids.command_list_item_name_canvas[i])

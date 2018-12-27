@@ -1,10 +1,10 @@
 use serde_derive::Deserialize;
 
-use crate::bindings::KeyCode;
+use crate::bindings::Shortcut;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandNode {
-    pub key: KeyCode,
+    pub shortcut: Shortcut,
     pub name: String,
     pub cmd: Option<String>,
     pub children: Vec<Command>,
@@ -12,7 +12,7 @@ pub struct CommandNode {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandLeaf {
-    pub key: KeyCode,
+    pub shortcut: Shortcut,
     pub name: String,
     pub cmd: String,
 }
@@ -29,14 +29,14 @@ pub enum Command {
  */
 #[derive(Clone)]
 pub struct CommandDisplay {
-    pub key: String,
+    pub shortcut: String,
     pub name: String,
 }
 
 impl From<CommandNode> for CommandDisplay {
     fn from(node: CommandNode) -> Self {
         CommandDisplay {
-            key: node.key.to_string(),
+            shortcut: node.shortcut.to_string(),
             name: node.name,
         }
     }
@@ -45,7 +45,7 @@ impl From<CommandNode> for CommandDisplay {
 impl From<CommandLeaf> for CommandDisplay {
     fn from(node: CommandLeaf) -> Self {
         CommandDisplay {
-            key: node.key.to_string(),
+            shortcut: node.shortcut.to_string(),
             name: node.name,
         }
     }
