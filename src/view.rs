@@ -52,30 +52,21 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
                             modifiers: input.modifiers,
                             key_code: virtual_keycode.into(),
                         };
-                        if let Command::Node(command_node) = &state.selected_command {
-                            let found_child =
-                                command_node.children.iter().find(|&child| match child {
-                                    Command::Node(child_node) => {
-                                        child_node.shortcut == pressed_shortcut
-                                    }
-                                    Command::Leaf(child_leaf) => {
-                                        child_leaf.shortcut == pressed_shortcut
-                                    }
-                                });
-                            match found_child {
-                                Some(found_child @ Command::Node(_)) => {
-                                    return Some(SpacerunEvent::SelectCommand(found_child))
-                                }
-                                Some(Command::Leaf(child_leaf)) => {
-                                    CliCommand::new("sh")
-                                        .arg("-c")
-                                        .arg(&child_leaf.cmd)
-                                        .spawn()
-                                        .expect("process failed to execute");
-                                    return Some(SpacerunEvent::CloseApplication);
-                                }
-                                None => {}
+                        let found_child =
+                            state.selected_command.find_child_for_shortcut(&pressed_shortcut);
+                        match found_child {
+                            Some(found_child @ Command::Node(_)) => {
+                                return Some(SpacerunEvent::SelectCommand(found_child))
                             }
+                            Some(Command::Leaf(child_leaf)) => {
+                                CliCommand::new("sh")
+                                    .arg("-c")
+                                    .arg(&child_leaf.cmd)
+                                    .spawn()
+                                    .expect("process failed to execute");
+                                return Some(SpacerunEvent::CloseApplication);
+                            }
+                            None => {}
                         }
                     }
                 }

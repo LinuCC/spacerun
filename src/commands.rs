@@ -65,4 +65,19 @@ impl Command {
                 .collect(),
         }
     }
+
+    pub fn find_child_for_shortcut(&self, shortcut: &Shortcut) -> Option<&Command> {
+        if let Command::Node(node) = self {
+            node.children.iter().find(|&child| match child {
+                Command::Node(child_node) => {
+                    &child_node.shortcut == shortcut
+                }
+                Command::Leaf(child_leaf) => {
+                    &child_leaf.shortcut == shortcut
+                }
+            })
+        } else {
+            None
+        }
+    }
 }

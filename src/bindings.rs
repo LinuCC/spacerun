@@ -1,6 +1,8 @@
+use std::fmt::{self, Display};
+use std::str::FromStr;
+
 use conrod::backend::glium::glium::glutin::{ModifiersState, VirtualKeyCode};
 use serde::de;
-use std::fmt::{self, Display};
 
 /**
  * A pressed key
@@ -8,77 +10,50 @@ use std::fmt::{self, Display};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyCode(VirtualKeyCode);
 
-fn key_code_from_str<E>(value: &str) -> Result<KeyCode, E>
-where
-    E: de::Error,
-{
-    match value {
-        "a" => Ok(KeyCode(VirtualKeyCode::A)),
-        "b" => Ok(KeyCode(VirtualKeyCode::B)),
-        "c" => Ok(KeyCode(VirtualKeyCode::C)),
-        "d" => Ok(KeyCode(VirtualKeyCode::D)),
-        "e" => Ok(KeyCode(VirtualKeyCode::E)),
-        "f" => Ok(KeyCode(VirtualKeyCode::F)),
-        "g" => Ok(KeyCode(VirtualKeyCode::G)),
-        "h" => Ok(KeyCode(VirtualKeyCode::H)),
-        "i" => Ok(KeyCode(VirtualKeyCode::I)),
-        "j" => Ok(KeyCode(VirtualKeyCode::J)),
-        "k" => Ok(KeyCode(VirtualKeyCode::K)),
-        "l" => Ok(KeyCode(VirtualKeyCode::L)),
-        "m" => Ok(KeyCode(VirtualKeyCode::M)),
-        "n" => Ok(KeyCode(VirtualKeyCode::N)),
-        "o" => Ok(KeyCode(VirtualKeyCode::O)),
-        "p" => Ok(KeyCode(VirtualKeyCode::P)),
-        "q" => Ok(KeyCode(VirtualKeyCode::Q)),
-        "r" => Ok(KeyCode(VirtualKeyCode::R)),
-        "s" => Ok(KeyCode(VirtualKeyCode::S)),
-        "t" => Ok(KeyCode(VirtualKeyCode::T)),
-        "u" => Ok(KeyCode(VirtualKeyCode::U)),
-        "v" => Ok(KeyCode(VirtualKeyCode::V)),
-        "w" => Ok(KeyCode(VirtualKeyCode::W)),
-        "x" => Ok(KeyCode(VirtualKeyCode::X)),
-        "y" => Ok(KeyCode(VirtualKeyCode::Y)),
-        "z" => Ok(KeyCode(VirtualKeyCode::Z)),
-        "1" => Ok(KeyCode(VirtualKeyCode::Key1)),
-        "2" => Ok(KeyCode(VirtualKeyCode::Key2)),
-        "3" => Ok(KeyCode(VirtualKeyCode::Key3)),
-        "4" => Ok(KeyCode(VirtualKeyCode::Key4)),
-        "5" => Ok(KeyCode(VirtualKeyCode::Key5)),
-        "6" => Ok(KeyCode(VirtualKeyCode::Key6)),
-        "7" => Ok(KeyCode(VirtualKeyCode::Key7)),
-        "8" => Ok(KeyCode(VirtualKeyCode::Key8)),
-        "9" => Ok(KeyCode(VirtualKeyCode::Key9)),
-        "0" => Ok(KeyCode(VirtualKeyCode::Key0)),
-        _ => Err(de::Error::custom(format!(
-            "Not a parseable shortcut identifier: {}",
-            value
-        ))),
-    }
-}
+impl FromStr for KeyCode {
+    type Err = ShortcutFromStrError;
 
-struct KeyCodeVisitor;
-
-impl<'de> de::Visitor<'de> for KeyCodeVisitor {
-    type Value = KeyCode;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a shortcut identifier")
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        key_code_from_str(value)
-    }
-}
-
-impl<'de> de::Deserialize<'de> for KeyCode {
-    fn deserialize<D>(deserializer: D) -> Result<KeyCode, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(KeyCodeVisitor)
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "a" => Ok(KeyCode(VirtualKeyCode::A)),
+            "b" => Ok(KeyCode(VirtualKeyCode::B)),
+            "c" => Ok(KeyCode(VirtualKeyCode::C)),
+            "d" => Ok(KeyCode(VirtualKeyCode::D)),
+            "e" => Ok(KeyCode(VirtualKeyCode::E)),
+            "f" => Ok(KeyCode(VirtualKeyCode::F)),
+            "g" => Ok(KeyCode(VirtualKeyCode::G)),
+            "h" => Ok(KeyCode(VirtualKeyCode::H)),
+            "i" => Ok(KeyCode(VirtualKeyCode::I)),
+            "j" => Ok(KeyCode(VirtualKeyCode::J)),
+            "k" => Ok(KeyCode(VirtualKeyCode::K)),
+            "l" => Ok(KeyCode(VirtualKeyCode::L)),
+            "m" => Ok(KeyCode(VirtualKeyCode::M)),
+            "n" => Ok(KeyCode(VirtualKeyCode::N)),
+            "o" => Ok(KeyCode(VirtualKeyCode::O)),
+            "p" => Ok(KeyCode(VirtualKeyCode::P)),
+            "q" => Ok(KeyCode(VirtualKeyCode::Q)),
+            "r" => Ok(KeyCode(VirtualKeyCode::R)),
+            "s" => Ok(KeyCode(VirtualKeyCode::S)),
+            "t" => Ok(KeyCode(VirtualKeyCode::T)),
+            "u" => Ok(KeyCode(VirtualKeyCode::U)),
+            "v" => Ok(KeyCode(VirtualKeyCode::V)),
+            "w" => Ok(KeyCode(VirtualKeyCode::W)),
+            "x" => Ok(KeyCode(VirtualKeyCode::X)),
+            "y" => Ok(KeyCode(VirtualKeyCode::Y)),
+            "z" => Ok(KeyCode(VirtualKeyCode::Z)),
+            "1" => Ok(KeyCode(VirtualKeyCode::Key1)),
+            "2" => Ok(KeyCode(VirtualKeyCode::Key2)),
+            "3" => Ok(KeyCode(VirtualKeyCode::Key3)),
+            "4" => Ok(KeyCode(VirtualKeyCode::Key4)),
+            "5" => Ok(KeyCode(VirtualKeyCode::Key5)),
+            "6" => Ok(KeyCode(VirtualKeyCode::Key6)),
+            "7" => Ok(KeyCode(VirtualKeyCode::Key7)),
+            "8" => Ok(KeyCode(VirtualKeyCode::Key8)),
+            "9" => Ok(KeyCode(VirtualKeyCode::Key9)),
+            "0" => Ok(KeyCode(VirtualKeyCode::Key0)),
+            "SPC" => Ok(KeyCode(VirtualKeyCode::Space)),
+            _ => Err(ShortcutFromStrError),
+        }
     }
 }
 
@@ -161,40 +136,25 @@ impl Display for Shortcut {
     }
 }
 
-struct ShortcutVisitor;
+impl FromStr for Shortcut {
+    type Err = ShortcutFromStrError;
 
-impl<'de> de::Visitor<'de> for ShortcutVisitor {
-    type Value = Shortcut;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a shortcut identifier")
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         let keys: Vec<&str> = value.split('-').collect::<Vec<&str>>();;
         if let Some((key_code_string, modifier_strings)) = keys.split_last() {
-            let modifiers_state = ModifiersState {
+            let modifiers = ModifiersState {
                 ctrl: modifier_strings.contains(&"C"),
                 alt: modifier_strings.contains(&"M"),
                 shift: modifier_strings.contains(&"S"),
                 logo: modifier_strings.contains(&"L"),
             };
-            let key_code_result = key_code_from_str(key_code_string);
-            match key_code_result {
-                Ok(key_code) => Ok(Shortcut {
-                    modifiers: modifiers_state,
-                    key_code: key_code,
-                }),
-                Err(error) => Err(error),
-            }
+            let key_code = key_code_string.parse()?;
+            Ok(Shortcut {
+                modifiers,
+                key_code
+            })
         } else {
-            Err(de::Error::custom(format!(
-                "Not a parseable shortcut identifier: {}",
-                value
-            )))
+            Err(ShortcutFromStrError)
         }
     }
 }
@@ -204,6 +164,22 @@ impl<'de> de::Deserialize<'de> for Shortcut {
     where
         D: de::Deserializer<'de>,
     {
-        deserializer.deserialize_str(ShortcutVisitor)
+        let s = <&str>::deserialize(deserializer)?;
+        FromStr::from_str(s).map_err(de::Error::custom)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct ShortcutFromStrError;
+
+impl Display for ShortcutFromStrError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Not a valid shortcut identifier")
+    }
+}
+
+impl fmt::Debug for ShortcutFromStrError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Not a valid shortcut identifier")
     }
 }

@@ -1,11 +1,13 @@
 use conrod::backend::glium::glium::glutin::os::unix::WindowBuilderExt;
 use conrod::backend::glium::glium::{self, Surface};
 use conrod::backend::glium::Renderer;
+use structopt::StructOpt;
 
 use crate::event_loop::EventLoop;
 use crate::state::State;
 use crate::view::SpacerunEvent::{CloseApplication, FocusLost, SelectCommand};
 use crate::view::{handle_event, set_ui, update_window_and_window_state, update_initial_window_state, Ids};
+use crate::bindings::Shortcut;
 
 mod bindings;
 mod commands;
@@ -17,14 +19,25 @@ mod window_position;
 
 static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
 
+#[derive(Debug, StructOpt)]
+#[structopt(name = "spacerun")]
+pub struct Options {
+    #[structopt(short = "s", long = "shortcut", parse(try_from_str))]
+    initial_shortcut: Option<Shortcut>
+}
+
 fn main() {
+    // --- Parse command line args
+    let options = Options::from_args();
+    eprintln!("options: {:?}", options);
+
     // --- Setup Commands
     let config = config::load_config()
         .expect("Error loading the config. Check your configuration for inconsistencies.");
     eprintln!("Commands Loaded!");
     eprintln!("{:?}", config.commands);
 
-    let mut state = State::new(config);
+    let mut state = State::new(config, options);
 
     // --- Setup Conrod UI
     let mut ui = conrod::UiBuilder::new([
