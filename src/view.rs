@@ -2,11 +2,14 @@ use std::process::Command as CliCommand;
 
 use conrod::backend::glium::glium;
 use conrod::backend::glium::glium::backend::glutin::glutin::Event;
+use conrod::backend::glium::glium::backend::glutin::Display;
 use conrod::{color, widget_ids};
 
 use crate::bindings::Shortcut;
 use crate::commands::Command;
+use crate::config::SpacerunConfig;
 use crate::state::State;
+use crate::window_position::WindowPosition;
 
 widget_ids! {
     pub struct Ids {
@@ -22,6 +25,7 @@ widget_ids! {
 
 pub enum SpacerunEvent<'a> {
     SelectCommand(&'a Command),
+    FocusLost,
     CloseApplication,
 }
 
@@ -40,6 +44,7 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
                     },
                 ..
             } => return Some(SpacerunEvent::CloseApplication),
+            glium::glutin::WindowEvent::Focused(false) => return Some(SpacerunEvent::FocusLost),
             glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if input.state == glium::glutin::ElementState::Pressed {
@@ -80,6 +85,37 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
         _ => (),
     }
     None
+}
+
+pub fn update_window_and_window_state(
+    new_window_height: f64,
+    state: &mut State,
+    display: &Display,
+    force_update: bool,
+) -> () {
+    if new_window_height != state.window_dimensions.height || force_update {
+        eprintln!("Updating window size.");
+
+        match state.config.position {
+            Some(WindowPosition::Top) => {
+                let current_monitor = display.gl_window().get_current_monitor();
+                state.window_dimensions.width = current_monitor.get_dimensions().width;
+                state.window_position = current_monitor.get_position().to_logical(1.0);
+                display.gl_window().set_position(state.window_position);
+            }
+            Some(WindowPosition::Bottom) => {
+                let current_monitor = display.gl_window().get_current_monitor();
+                state.window_dimensions.width = current_monitor.get_dimensions().width;
+                let monitor_height = current_monitor.get_dimensions().height;
+                state.window_position = (0.0, monitor_height - new_window_height as f64).into();
+                display.gl_window().set_position(state.window_position);
+            }
+            _ => {}
+        };
+
+        state.window_dimensions.height = new_window_height;
+        display.gl_window().set_inner_size(state.window_dimensions);
+    }
 }
 
 // Declare the `WidgetId`s and instantiate the widgets.
@@ -154,6 +190,28 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
     if let Some(s) = scrollbar {
         s.set(ui)
     }
+}
+
+/**
+ * Guess the window height for the initially displayed ui to avoid flickering.
+ *
+ * We need to know the height of the rendered UI to generate a window with
+ * correct dimensions, but we need to generate a window to render into the
+ * correct width dimension [1].
+ * To circumvent that, we just take a best guess at the initially rendered
+ * dimensions;
+ * Ideally, we won't have a flickering window nor a bigger delay until we show
+ * the window.
+ *
+ * [1] - The width of the "current" (^= active) monitor of the window can only
+ *       be fetched by `window.get_current_monitor()` AFAIK.
+ *       The `event_loop` only implements getting all and the primary monitor,
+ *       but not the active one.
+ */
+pub fn guess_initial_window_height(config: &SpacerunConfig) -> f64 {
+    let displayed_children = config.commands.displayable_children().len() as u32;
+    let font_size = config.font_size.unwrap_or(DEFAULT_FONT_SIZE);
+    (displayed_children * item_height_by_font_size(font_size)) as f64
 }
 
 /// Calculate the items height by the given font size
