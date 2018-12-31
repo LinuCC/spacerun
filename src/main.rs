@@ -84,22 +84,7 @@ fn main() {
                 }
                 Some(FocusLost) => {
                     // FIXME LinuCC Find out how Rofi does not lose focus, and implement it here.
-                    //     Hides and shows the window to refocus it when focus is lost.
-                    //     If the window resizes (Happens if a command is selected)
-                    //     and the mouse pointer is not pointed to the window,
-                    //     it loses focus sometimes.
-                    //     Losing the focus while typing is infuriating, so this will work for now.
-                    //     Breaks when trying to resize the window, it then loops hiding & showing
-                    //     the window.
-
-                    display.gl_window().hide();
-                    display.gl_window().show();
-                    update_window_and_window_state(
-                        state.window_dimensions.height,
-                        &mut state,
-                        &display,
-                        true,
-                    );
+                    display.gl_window().set_cursor_position((0, 0).into()).unwrap();
                 }
                 Some(CloseApplication) => break 'main,
                 None => (),
