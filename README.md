@@ -13,20 +13,40 @@ configured.
 * Edit the JSON file with your shortcuts
 * Have fun :rocket:
 
+## Configuration
+
+Edit `config.json` in your configuration path to change spaceruns behaviour.
+
+* `commands` contains your shortcuts and the action it should execute.
+* `font_size` sets the displayed fonts size (default is 14).
+* `position` specifies the position of spaceruns window.
+  Its value can be one of:
+  * `centered` for a centered window with automatic width  (default).
+  * `top` for a full-width window positioned at the top of your screen.
+  * `bottom` for a full-width window positioned at the bottom of your screen.
+
+# Principles
+
+* Spacerun should be fast to use.
+* Spacerun is not only a task runner, but a productivity tool.
+* Automation is awesome; Automation is both documenting and time saving.
+  Therefore, spacerun broadens the possible applications of automation by enabling rapid changes to it.
+
 # ToDos
 
 * [ ] Generate default config file if it is missing
 * [ ] Replace `unwrap()`s with real error handling & good error messages
   * [ ] Errors
       * [ ] On config missing / unreadable
-  * [ ] Show errors in window, it should not fail to show at least something when run
+  * [ ] Show errors in window, it should not fail to show at least *something* when run
 * [ ] Add styling config options
   * [ ] Font config
-      * [/] Size
+      * [x] Size
   * [ ] colors
 * [ ] Global command layer for configurable hotkeys
   * [ ] Backspace to go back up one layer
   * [ ] Escape exits
+* Refactor code & add some tests
 
 ## Cool & shiny things to implement
 
@@ -44,6 +64,7 @@ configured.
 * [ ] Breadcrumbs, showing the path you went down.
 * [ ] Show name and description of the current tree as a title / subtitle of the window
 * [ ] Radial menu instead of list as option (Because radial menus are awesome!)
+* [ ] Unicode / emoticons / ligatures / FontAwesome support
 * [ ] More key-value pairs for command leafs!
     * [ ] "description" to find / understand your nodes & commands, even after a long night.
     * [ ] "clip" copying a string to clipboard.
