@@ -25,6 +25,13 @@ Edit `config.json` in your configuration path to change spaceruns behaviour.
   * `top` for a full-width window positioned at the top of your screen.
   * `bottom` for a full-width window positioned at the bottom of your screen.
 
+# Principles
+
+* Spacerun should be fast to use.
+* Spacerun is not only a task runner, but a productivity tool.
+* Automation is awesome; Automation is both documenting and time saving.
+  Therefore, spacerun broadens the possible applications of automation by enabling rapid changes to it.
+
 # ToDos
 
 * [ ] Generate default config file if it is missing

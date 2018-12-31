@@ -5,7 +5,7 @@ use conrod::backend::glium::Renderer;
 use crate::event_loop::EventLoop;
 use crate::state::State;
 use crate::view::SpacerunEvent::{CloseApplication, FocusLost, SelectCommand};
-use crate::view::{handle_event, set_ui, update_window_and_window_state, Ids};
+use crate::view::{handle_event, set_ui, update_window_and_window_state, update_initial_window_state, Ids};
 
 mod bindings;
 mod commands;
@@ -26,6 +26,18 @@ fn main() {
 
     let mut state = State::new(config);
 
+    // --- Setup Conrod UI
+    let mut ui = conrod::UiBuilder::new([
+        state.window_dimensions.width,
+        state.window_dimensions.height,
+    ])
+    .build();
+    let mut ids = Ids::new(ui.widget_id_generator());
+    // Add a `Font` to the `Ui`'s `font::Map` from file.
+    ui.fonts
+        .insert(conrod::text::Font::from_bytes(FONT).unwrap());
+    update_initial_window_state(&mut ui, &mut state, &mut ids);
+
     // --- Setup Conrod
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new()
@@ -36,31 +48,25 @@ fn main() {
         .with_x11_window_type(glium::glutin::os::unix::XWindowType::Utility)
         // Untested as i3 ignores always_on_top, should help usage with other WMs
         .with_always_on_top(true)
+        .with_transparency(true)
+        .with_visibility(false)
         .with_decorations(false);
     let context = glium::glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_multisampling(4);
+
     let display = glium::Display::new(window, context, &events_loop).unwrap();
+
+    let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
+
+    // The image map describing each of our widget->image mappings (in our case, none).
+    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
+
+    display.gl_window().show();
 
     // WindowBuilder has no `with_position`, so we should update the window
     // with its dimensions directly after it was created.
     update_window_and_window_state(state.window_dimensions.height, &mut state, &display, true);
-
-    let mut ui = conrod::UiBuilder::new([
-        state.window_dimensions.width,
-        state.window_dimensions.height,
-    ])
-    .build();
-    let mut ids = Ids::new(ui.widget_id_generator());
-
-    let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
-
-    // Add a `Font` to the `Ui`'s `font::Map` from file.
-    ui.fonts
-        .insert(conrod::text::Font::from_bytes(FONT).unwrap());
-
-    // The image map describing each of our widget->image mappings (in our case, none).
-    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
 
     let mut event_loop = EventLoop::new();
 
@@ -87,13 +93,13 @@ fn main() {
                     //     the window.
 
                     display.gl_window().hide();
+                    display.gl_window().show();
                     update_window_and_window_state(
                         state.window_dimensions.height,
                         &mut state,
                         &display,
                         true,
                     );
-                    display.gl_window().show();
                 }
                 Some(CloseApplication) => break 'main,
                 None => (),
@@ -120,13 +126,12 @@ fn render(
 ) {
     set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
 
-    if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
-        let new_window_height = render_rect.h();
-        update_window_and_window_state(new_window_height, state, &display, false);
-    }
-
     // Render the `Ui` and then display it on the screen.
     if let Some(primitives) = ui.draw_if_changed() {
+        if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
+            let new_window_height = render_rect.h();
+            update_window_and_window_state(new_window_height, state, &display, false);
+        }
         renderer.fill(&display, primitives, &image_map);
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);

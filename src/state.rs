@@ -2,9 +2,9 @@ use conrod::glium::glutin::dpi::{LogicalPosition, LogicalSize};
 
 use crate::commands::Command;
 use crate::config::SpacerunConfig;
-use crate::view::guess_initial_window_height;
 
 const DEFAULT_WINDOW_WIDTH: f64 = 500.0;
+const DEFAULT_WINDOW_HEIGHT: f64 = 400.0;
 
 pub struct State {
     pub window_position: LogicalPosition,
@@ -16,7 +16,7 @@ pub struct State {
 impl State {
     pub fn new(config: SpacerunConfig) -> State {
         let state = State {
-            window_dimensions: (DEFAULT_WINDOW_WIDTH, guess_initial_window_height(&config)).into(),
+            window_dimensions: (DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT).into(),
             window_position: (0, 0).into(),
             selected_command: config.commands.to_owned(),
             config: config,

@@ -3,11 +3,11 @@ use std::process::Command as CliCommand;
 use conrod::backend::glium::glium;
 use conrod::backend::glium::glium::backend::glutin::glutin::Event;
 use conrod::backend::glium::glium::backend::glutin::Display;
+use conrod::Ui;
 use conrod::{color, widget_ids};
 
 use crate::bindings::Shortcut;
 use crate::commands::Command;
-use crate::config::SpacerunConfig;
 use crate::state::State;
 use crate::window_position::WindowPosition;
 
@@ -87,6 +87,20 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
     None
 }
 
+pub fn update_initial_window_state(ui: &mut Ui, state: &mut State, ids: &mut Ids) {
+    // Generate Ui to get its height
+    //
+    // FIXME LinuCC For some reason `ui.kids_bounding_box()` accesses the
+    //     `ui.prev_updated_widgets`, which only exists after generating the Ui
+    //     a second time.
+    set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
+    set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
+
+    if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
+        state.window_dimensions.height = render_rect.h();
+    }
+}
+
 pub fn update_window_and_window_state(
     new_window_height: f64,
     state: &mut State,
@@ -96,23 +110,27 @@ pub fn update_window_and_window_state(
     if new_window_height != state.window_dimensions.height || force_update {
         eprintln!("Updating window size.");
 
+        let mut new_window_position = None;
         match state.config.position {
             Some(WindowPosition::Top) => {
                 let current_monitor = display.gl_window().get_current_monitor();
                 state.window_dimensions.width = current_monitor.get_dimensions().width;
-                state.window_position = current_monitor.get_position().to_logical(1.0);
-                display.gl_window().set_position(state.window_position);
+                new_window_position = Some(current_monitor.get_position().to_logical(1.0));
             }
             Some(WindowPosition::Bottom) => {
                 let current_monitor = display.gl_window().get_current_monitor();
                 state.window_dimensions.width = current_monitor.get_dimensions().width;
                 let monitor_height = current_monitor.get_dimensions().height;
-                state.window_position = (0.0, monitor_height - new_window_height as f64).into();
-                display.gl_window().set_position(state.window_position);
+                new_window_position = Some((0.0, monitor_height - new_window_height as f64).into());
             }
             _ => {}
         };
 
+        if let Some(new_window_position) = new_window_position {
+            println!("Setting windows position");
+            state.window_position = new_window_position;
+            display.gl_window().set_position(new_window_position);
+        }
         state.window_dimensions.height = new_window_height;
         display.gl_window().set_inner_size(state.window_dimensions);
     }
@@ -190,28 +208,6 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
     if let Some(s) = scrollbar {
         s.set(ui)
     }
-}
-
-/**
- * Guess the window height for the initially displayed ui to avoid flickering.
- *
- * We need to know the height of the rendered UI to generate a window with
- * correct dimensions, but we need to generate a window to render into the
- * correct width dimension [1].
- * To circumvent that, we just take a best guess at the initially rendered
- * dimensions;
- * Ideally, we won't have a flickering window nor a bigger delay until we show
- * the window.
- *
- * [1] - The width of the "current" (^= active) monitor of the window can only
- *       be fetched by `window.get_current_monitor()` AFAIK.
- *       The `event_loop` only implements getting all and the primary monitor,
- *       but not the active one.
- */
-pub fn guess_initial_window_height(config: &SpacerunConfig) -> f64 {
-    let displayed_children = config.commands.displayable_children().len() as u32;
-    let font_size = config.font_size.unwrap_or(DEFAULT_FONT_SIZE);
-    (displayed_children * item_height_by_font_size(font_size)) as f64
 }
 
 /// Calculate the items height by the given font size
