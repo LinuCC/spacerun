@@ -61,7 +61,6 @@ fn main() {
         .with_x11_window_type(glium::glutin::os::unix::XWindowType::Utility)
         // Untested as i3 ignores always_on_top, should help usage with other WMs
         .with_always_on_top(true)
-        .with_transparency(true)
         .with_visibility(false)
         .with_decorations(false);
     let context = glium::glutin::ContextBuilder::new()
