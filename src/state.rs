@@ -1,19 +1,18 @@
 use conrod::glium::glutin::dpi::{LogicalPosition, LogicalSize};
 
-use crate::bindings::Shortcut;
-use crate::commands::Command;
+use crate::commands::{Command, CommandDisplay};
 use crate::config::SpacerunConfig;
 use crate::Options;
 
 const DEFAULT_WINDOW_WIDTH: f64 = 500.0;
-const DEFAULT_WINDOW_HEIGHT: f64 = 400.0;
+const DEFAULT_WINDOW_HEIGHT: f64 = 800.0;
 
 pub struct State {
     pub window_position: LogicalPosition,
     pub window_dimensions: LogicalSize,
     pub config: SpacerunConfig,
     pub selected_command: Command,
-    pub selection_path: Vec<Shortcut>,
+    pub selection_path: Vec<CommandDisplay>,
     pub options: Options,
 }
 

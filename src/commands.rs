@@ -29,14 +29,23 @@ pub enum Command {
  */
 #[derive(Clone)]
 pub struct CommandDisplay {
-    pub shortcut: String,
+    pub shortcut: Shortcut,
     pub name: String,
+}
+
+impl From<Command> for CommandDisplay {
+    fn from(command: Command) -> Self {
+        match command {
+            Command::Node(node) => node.into(),
+            Command::Leaf(leaf) => leaf.into(),
+        }
+    }
 }
 
 impl From<CommandNode> for CommandDisplay {
     fn from(node: CommandNode) -> Self {
         CommandDisplay {
-            shortcut: node.shortcut.to_string(),
+            shortcut: node.shortcut,
             name: node.name,
         }
     }
@@ -45,7 +54,7 @@ impl From<CommandNode> for CommandDisplay {
 impl From<CommandLeaf> for CommandDisplay {
     fn from(node: CommandLeaf) -> Self {
         CommandDisplay {
-            shortcut: node.shortcut.to_string(),
+            shortcut: node.shortcut,
             name: node.name,
         }
     }

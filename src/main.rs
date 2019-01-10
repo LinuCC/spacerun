@@ -6,9 +6,10 @@ use structopt::StructOpt;
 use crate::bindings::Shortcut;
 use crate::event_loop::EventLoop;
 use crate::state::State;
-use crate::view::SpacerunEvent::{CloseApplication, PrevLevelCommand, FocusLost, SelectCommand};
+use crate::view::SpacerunEvent::{CloseApplication, FocusLost, PrevLevelCommand, SelectCommand};
 use crate::view::{
-    handle_event, set_ui, update_initial_window_state, update_window_and_window_state, Ids,
+    handle_event, rendered_elements_height, set_ui, update_initial_window_state,
+    update_window_and_window_state, Ids,
 };
 
 mod bindings;
@@ -97,13 +98,17 @@ fn main() {
                     state.selected_command = new_selected_command.clone();
                     state
                         .selection_path
-                        .push(state.selected_command.shortcut().clone());
+                        .push(state.selected_command.clone().into());
                 }
                 Some(PrevLevelCommand) => {
                     if state.selection_path.pop().is_some() {
-                        let new_command = state.selection_path.iter().try_fold(&state.config.commands, |acc, shortcut| {
-                            acc.find_child_for_shortcut(shortcut).ok_or("failed to walk the selection path")
-                        });
+                        let new_command = state.selection_path.iter().try_fold(
+                            &state.config.commands,
+                            |acc, commandDisplay| {
+                                acc.find_child_for_shortcut(&commandDisplay.shortcut)
+                                    .ok_or("failed to walk the selection path")
+                            },
+                        );
                         if let Ok(new_command) = new_command {
                             state.selected_command = new_command.clone();
                         }
@@ -143,8 +148,8 @@ fn render(
 
     // Render the `Ui` and then display it on the screen.
     if let Some(primitives) = ui.draw_if_changed() {
-        if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
-            let new_window_height = render_rect.h();
+        if let Some(height) = rendered_elements_height(ui, ids) {
+            let new_window_height = height;
             update_window_and_window_state(new_window_height, state, &display, false);
         }
         renderer.fill(&display, primitives, &image_map);
