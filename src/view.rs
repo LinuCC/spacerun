@@ -25,6 +25,7 @@ widget_ids! {
 
 pub enum SpacerunEvent<'a> {
     SelectCommand(&'a Command),
+    PrevLevelCommand,
     FocusLost,
     CloseApplication,
 }
@@ -48,25 +49,18 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
             glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if input.state == glium::glutin::ElementState::Pressed {
+                        if virtual_keycode == glium::glutin::VirtualKeyCode::Back {
+                            return Some(SpacerunEvent::PrevLevelCommand);
+                        }
                         let pressed_shortcut = Shortcut {
                             modifiers: input.modifiers,
                             key_code: virtual_keycode.into(),
                         };
-                        let found_child =
-                            state.selected_command.find_child_for_shortcut(&pressed_shortcut);
-                        match found_child {
-                            Some(found_child @ Command::Node(_)) => {
-                                return Some(SpacerunEvent::SelectCommand(found_child))
-                            }
-                            Some(Command::Leaf(child_leaf)) => {
-                                CliCommand::new("sh")
-                                    .arg("-c")
-                                    .arg(&child_leaf.cmd)
-                                    .spawn()
-                                    .expect("process failed to execute");
-                                return Some(SpacerunEvent::CloseApplication);
-                            }
-                            None => {}
+                        let found_child = state
+                            .selected_command
+                            .find_child_for_shortcut(&pressed_shortcut);
+                        if let Some(found_child) = found_child {
+                            return select_command(&found_child);
                         }
                     }
                 }
@@ -76,6 +70,20 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
         _ => (),
     }
     None
+}
+
+fn select_command<'a>(command: &'a Command) -> Option<SpacerunEvent<'a>> {
+    match command {
+        command @ Command::Node(_) => return Some(SpacerunEvent::SelectCommand(command)),
+        Command::Leaf(child_leaf) => {
+            CliCommand::new("sh")
+                .arg("-c")
+                .arg(&child_leaf.cmd)
+                .spawn()
+                .expect("process failed to execute");
+            return Some(SpacerunEvent::CloseApplication);
+        }
+    }
 }
 
 pub fn update_initial_window_state(ui: &mut Ui, state: &mut State, ids: &mut Ids) {

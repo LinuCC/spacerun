@@ -52,6 +52,13 @@ impl From<CommandLeaf> for CommandDisplay {
 }
 
 impl Command {
+    pub fn shortcut(&self) -> &Shortcut {
+        match self {
+            Command::Leaf(command_leaf) => &command_leaf.shortcut,
+            Command::Node(command_node) => &command_node.shortcut,
+        }
+    }
+
     pub fn displayable_children(&self) -> Vec<CommandDisplay> {
         match self {
             Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
@@ -69,12 +76,8 @@ impl Command {
     pub fn find_child_for_shortcut(&self, shortcut: &Shortcut) -> Option<&Command> {
         if let Command::Node(node) = self {
             node.children.iter().find(|&child| match child {
-                Command::Node(child_node) => {
-                    &child_node.shortcut == shortcut
-                }
-                Command::Leaf(child_leaf) => {
-                    &child_leaf.shortcut == shortcut
-                }
+                Command::Node(child_node) => &child_node.shortcut == shortcut,
+                Command::Leaf(child_leaf) => &child_leaf.shortcut == shortcut,
             })
         } else {
             None
