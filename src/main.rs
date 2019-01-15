@@ -106,10 +106,9 @@ fn main() {
                             &state.config.commands,
                             |acc, command_display| {
                                 acc.find_child_for_shortcut(&command_display.shortcut)
-                                    .ok_or("failed to walk the selection path")
                             },
                         );
-                        if let Ok(new_command) = new_command {
+                        if let Some(new_command) = new_command {
                             state.selected_command = new_command.clone();
                         }
                     }
