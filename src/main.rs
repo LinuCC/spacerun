@@ -104,8 +104,8 @@ fn main() {
                     if state.selection_path.pop().is_some() {
                         let new_command = state.selection_path.iter().try_fold(
                             &state.config.commands,
-                            |acc, commandDisplay| {
-                                acc.find_child_for_shortcut(&commandDisplay.shortcut)
+                            |acc, command_display| {
+                                acc.find_child_for_shortcut(&command_display.shortcut)
                                     .ok_or("failed to walk the selection path")
                             },
                         );

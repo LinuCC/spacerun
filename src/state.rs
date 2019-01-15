@@ -5,7 +5,7 @@ use crate::config::SpacerunConfig;
 use crate::Options;
 
 const DEFAULT_WINDOW_WIDTH: f64 = 500.0;
-const DEFAULT_WINDOW_HEIGHT: f64 = 800.0;
+const DEFAULT_WINDOW_HEIGHT: f64 = 400.0;
 
 pub struct State {
     pub window_position: LogicalPosition,

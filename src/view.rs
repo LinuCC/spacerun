@@ -26,8 +26,8 @@ widget_ids! {
     }
 }
 
-pub enum SpacerunEvent<'a> {
-    SelectCommand(&'a Command),
+pub enum SpacerunEvent {
+    SelectCommand(Command),
     PrevLevelCommand,
     FocusLost,
     CloseApplication,
@@ -35,7 +35,7 @@ pub enum SpacerunEvent<'a> {
 
 static DEFAULT_FONT_SIZE: u32 = 14;
 
-pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent<'a>> {
+pub fn handle_event(event: &Event, state: &State) -> Option<SpacerunEvent> {
     match event {
         glium::glutin::Event::WindowEvent { event, .. } => match event {
             // Break from the loop upon `Escape`.
@@ -75,9 +75,9 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
     None
 }
 
-fn select_command<'a>(command: &'a Command) -> Option<SpacerunEvent<'a>> {
+fn select_command(command: & Command) -> Option<SpacerunEvent> {
     match command {
-        command @ Command::Node(_) => return Some(SpacerunEvent::SelectCommand(command)),
+        command @ Command::Node(_) => return Some(SpacerunEvent::SelectCommand(command.clone())),
         Command::Leaf(child_leaf) => {
             CliCommand::new("sh")
                 .arg("-c")
@@ -92,10 +92,12 @@ fn select_command<'a>(command: &'a Command) -> Option<SpacerunEvent<'a>> {
 /**
  * Calculate the "real" height of our rendered UI.
  *
- * Because the canvasses fit to our window height, we can't get the "rendered"
- * height from them, because it will always be the windows height.
- * Instead, we need to combine the height of our known elements to get the
- * new window height.
+ * The canvasses we render fit to the window's height, so we can't get the
+ * "real" rendered height of our content from them.
+ * Instead, we need to combine the height of our more static known elements to
+ * get the new window height.
+ *
+ * TODO (LinuCC) We probably need a max height? Same as window height?
  */
 pub fn rendered_elements_height(ui: &Ui, ids: &Ids) -> Option<f64> {
     if let Some(list_render_rect) = ui.kids_bounding_box(ids.command_list) {
