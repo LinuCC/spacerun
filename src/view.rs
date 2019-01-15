@@ -14,6 +14,9 @@ use crate::window_position::WindowPosition;
 widget_ids! {
     pub struct Ids {
         canvas,
+        head_canvas,
+        head_breadcrumbs,
+        list_canvas,
         command_list,
         command_list_item_canvas[],
         command_list_item_shortcut_canvas[],
@@ -23,15 +26,16 @@ widget_ids! {
     }
 }
 
-pub enum SpacerunEvent<'a> {
-    SelectCommand(&'a Command),
+pub enum SpacerunEvent {
+    SelectCommand(Command),
+    PrevLevelCommand,
     FocusLost,
     CloseApplication,
 }
 
 static DEFAULT_FONT_SIZE: u32 = 14;
 
-pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent<'a>> {
+pub fn handle_event(event: &Event, state: &State) -> Option<SpacerunEvent> {
     match event {
         glium::glutin::Event::WindowEvent { event, .. } => match event {
             // Break from the loop upon `Escape`.
@@ -48,25 +52,18 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
             glium::glutin::WindowEvent::KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if input.state == glium::glutin::ElementState::Pressed {
+                        if virtual_keycode == glium::glutin::VirtualKeyCode::Back {
+                            return Some(SpacerunEvent::PrevLevelCommand);
+                        }
                         let pressed_shortcut = Shortcut {
                             modifiers: input.modifiers,
                             key_code: virtual_keycode.into(),
                         };
-                        let found_child =
-                            state.selected_command.find_child_for_shortcut(&pressed_shortcut);
-                        match found_child {
-                            Some(found_child @ Command::Node(_)) => {
-                                return Some(SpacerunEvent::SelectCommand(found_child))
-                            }
-                            Some(Command::Leaf(child_leaf)) => {
-                                CliCommand::new("sh")
-                                    .arg("-c")
-                                    .arg(&child_leaf.cmd)
-                                    .spawn()
-                                    .expect("process failed to execute");
-                                return Some(SpacerunEvent::CloseApplication);
-                            }
-                            None => {}
+                        let found_child = state
+                            .selected_command
+                            .find_child_for_shortcut(&pressed_shortcut);
+                        if let Some(found_child) = found_child {
+                            return select_command(&found_child);
                         }
                     }
                 }
@@ -74,6 +71,39 @@ pub fn handle_event<'a>(event: &Event, state: &'a State) -> Option<SpacerunEvent
             _ => (),
         },
         _ => (),
+    }
+    None
+}
+
+fn select_command(command: & Command) -> Option<SpacerunEvent> {
+    match command {
+        command @ Command::Node(_) => return Some(SpacerunEvent::SelectCommand(command.clone())),
+        Command::Leaf(child_leaf) => {
+            CliCommand::new("sh")
+                .arg("-c")
+                .arg(&child_leaf.cmd)
+                .spawn()
+                .expect("process failed to execute");
+            return Some(SpacerunEvent::CloseApplication);
+        }
+    }
+}
+
+/**
+ * Calculate the "real" height of our rendered UI.
+ *
+ * The canvasses we render fit to the window's height, so we can't get the
+ * "real" rendered height of our content from them.
+ * Instead, we need to combine the height of our more static known elements to
+ * get the new window height.
+ *
+ * TODO (LinuCC) We probably need a max height? Same as window height?
+ */
+pub fn rendered_elements_height(ui: &Ui, ids: &Ids) -> Option<f64> {
+    if let Some(list_render_rect) = ui.kids_bounding_box(ids.command_list) {
+        if let Some(head_render_rect) = ui.kids_bounding_box(ids.head_canvas) {
+            return Some(list_render_rect.h() + head_render_rect.h());
+        }
     }
     None
 }
@@ -87,8 +117,8 @@ pub fn update_initial_window_state(ui: &mut Ui, state: &mut State, ids: &mut Ids
     set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
     set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
 
-    if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
-        state.window_dimensions.height = render_rect.h();
+    if let Some(height) = rendered_elements_height(ui, ids) {
+        state.window_dimensions.height = height;
     }
 }
 
@@ -131,9 +161,6 @@ pub fn update_window_and_window_state(
 pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids: &mut Ids) {
     use conrod::{widget, Colorable, Positionable, Sizeable, Widget};
 
-    widget::Canvas::new()
-        .color(color::DARK_CHARCOAL)
-        .set(ids.canvas, ui);
 
     let displayed_leafs = command.displayable_children();
 
@@ -151,14 +178,47 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
     }
 
+
+    let child_canvas = [
+        (
+            ids.head_canvas,
+            widget::Canvas::new()
+                .length(30.0)
+                .pad_left(10.0)
+                .color(color::ORANGE),
+        ),
+        (
+            ids.list_canvas,
+            widget::Canvas::new()
+                .color(color::BLUE),
+        ),
+    ];
+    // let canvas = widget::Canvas::new()
+    widget::Canvas::new()
+        .color(color::DARK_CHARCOAL)
+        .flow_down(&child_canvas)
+        .set(ids.canvas, ui);
+
+    let breadcrumb_text = state.selection_path.iter().fold("Root".into(), |acc, selection| {
+        format!("{} > {}", acc, selection.name)
+    });
+    widget::Text::new(&breadcrumb_text)
+        .mid_left_of(ids.head_canvas)
+        .color(color::WHITE)
+        .h_of(ids.head_canvas)
+        .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+        .set(ids.head_breadcrumbs, ui);
+
+
     // Generate list displaying the commands
     let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
         .item_size(
             item_height_by_font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE)).into(),
         )
         .scrollbar_on_top()
-        .middle_of(ids.canvas)
-        .w_of(ids.canvas)
+        .mid_top_of(ids.list_canvas)
+        .w_of(ids.list_canvas)
+        .h_of(ids.list_canvas)
         .set(ids.command_list, ui);
 
     // Generate each command item
@@ -183,7 +243,7 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
 
         item.set(canvas, ui);
 
-        widget::Text::new(&displayed_leafs[i].shortcut)
+        widget::Text::new(&displayed_leafs[i].shortcut.to_string())
             .middle_of(ids.command_list_item_shortcut_canvas[i])
             .color(color::WHITE)
             .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))

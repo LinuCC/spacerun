@@ -29,14 +29,23 @@ pub enum Command {
  */
 #[derive(Clone)]
 pub struct CommandDisplay {
-    pub shortcut: String,
+    pub shortcut: Shortcut,
     pub name: String,
+}
+
+impl From<Command> for CommandDisplay {
+    fn from(command: Command) -> Self {
+        match command {
+            Command::Node(node) => node.into(),
+            Command::Leaf(leaf) => leaf.into(),
+        }
+    }
 }
 
 impl From<CommandNode> for CommandDisplay {
     fn from(node: CommandNode) -> Self {
         CommandDisplay {
-            shortcut: node.shortcut.to_string(),
+            shortcut: node.shortcut,
             name: node.name,
         }
     }
@@ -45,13 +54,20 @@ impl From<CommandNode> for CommandDisplay {
 impl From<CommandLeaf> for CommandDisplay {
     fn from(node: CommandLeaf) -> Self {
         CommandDisplay {
-            shortcut: node.shortcut.to_string(),
+            shortcut: node.shortcut,
             name: node.name,
         }
     }
 }
 
 impl Command {
+    pub fn shortcut(&self) -> &Shortcut {
+        match self {
+            Command::Leaf(command_leaf) => &command_leaf.shortcut,
+            Command::Node(command_node) => &command_node.shortcut,
+        }
+    }
+
     pub fn displayable_children(&self) -> Vec<CommandDisplay> {
         match self {
             Command::Leaf(command_leaf) => vec![command_leaf.clone().into()],
@@ -68,14 +84,9 @@ impl Command {
 
     pub fn find_child_for_shortcut(&self, shortcut: &Shortcut) -> Option<&Command> {
         if let Command::Node(node) = self {
-            node.children.iter().find(|&child| match child {
-                Command::Node(child_node) => {
-                    &child_node.shortcut == shortcut
-                }
-                Command::Leaf(child_leaf) => {
-                    &child_leaf.shortcut == shortcut
-                }
-            })
+            node.children
+                .iter()
+                .find(|&child| child.shortcut() == shortcut)
         } else {
             None
         }

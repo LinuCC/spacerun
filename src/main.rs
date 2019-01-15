@@ -3,11 +3,14 @@ use conrod::backend::glium::glium::{self, Surface};
 use conrod::backend::glium::Renderer;
 use structopt::StructOpt;
 
+use crate::bindings::Shortcut;
 use crate::event_loop::EventLoop;
 use crate::state::State;
-use crate::view::SpacerunEvent::{CloseApplication, FocusLost, SelectCommand};
-use crate::view::{handle_event, set_ui, update_window_and_window_state, update_initial_window_state, Ids};
-use crate::bindings::Shortcut;
+use crate::view::SpacerunEvent::{CloseApplication, FocusLost, PrevLevelCommand, SelectCommand};
+use crate::view::{
+    handle_event, rendered_elements_height, set_ui, update_initial_window_state,
+    update_window_and_window_state, Ids,
+};
 
 mod bindings;
 mod commands;
@@ -23,7 +26,7 @@ static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.t
 #[structopt(name = "spacerun")]
 pub struct Options {
     #[structopt(short = "s", long = "shortcut", parse(try_from_str))]
-    initial_shortcut: Option<Shortcut>
+    initial_shortcut: Option<Shortcut>,
 }
 
 fn main() {
@@ -92,11 +95,31 @@ fn main() {
             }
             match handle_event(&event, &state) {
                 Some(SelectCommand(new_selected_command)) => {
-                    state.selected_command = new_selected_command.to_owned();
+                    state.selected_command = new_selected_command.clone();
+                    state
+                        .selection_path
+                        .push(state.selected_command.clone().into());
+                }
+                Some(PrevLevelCommand) => {
+                    if state.selection_path.pop().is_some() {
+                        let new_command = state.selection_path.iter().try_fold(
+                            &state.config.commands,
+                            |acc, command_display| {
+                                acc.find_child_for_shortcut(&command_display.shortcut)
+                                    .ok_or("failed to walk the selection path")
+                            },
+                        );
+                        if let Ok(new_command) = new_command {
+                            state.selected_command = new_command.clone();
+                        }
+                    }
                 }
                 Some(FocusLost) => {
                     // FIXME LinuCC Find out how Rofi does not lose focus, and implement it here.
-                    display.gl_window().set_cursor_position((0, 0).into()).unwrap();
+                    display
+                        .gl_window()
+                        .set_cursor_position((0, 0).into())
+                        .unwrap();
                 }
                 Some(CloseApplication) => break 'main,
                 None => (),
@@ -125,8 +148,8 @@ fn render(
 
     // Render the `Ui` and then display it on the screen.
     if let Some(primitives) = ui.draw_if_changed() {
-        if let Some(render_rect) = ui.kids_bounding_box(ids.command_list) {
-            let new_window_height = render_rect.h();
+        if let Some(height) = rendered_elements_height(ui, ids) {
+            let new_window_height = height;
             update_window_and_window_state(new_window_height, state, &display, false);
         }
         renderer.fill(&display, primitives, &image_map);

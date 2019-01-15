@@ -51,6 +51,10 @@ Edit `config.json` in your configuration path to change spaceruns behaviour.
 ## Cool & shiny things to implement
 
 * [ ] Auto-generate a form by placeholders in the command (e.g. `${'My Field Name': default val}`)
+* [ ] Context sensitive commands
+    * [ ] Prev focused window. I could have added a `"class": "^chromium"` to the commands config.
+          This option will only show if chromium was focused previous to spacerun being opened.
+          For more usability we could add placeholders in the command for window_id & more.
 * [ ] Replace placeholders by data / vars (e.g. `${clipboard}` / `${clipboard_selection}`)
   (Although this is a bit redundant with scripts being able to fetch the same information)
 * [ ] Better / cooler / easier to edit format instead of a json file?
@@ -68,3 +72,8 @@ Edit `config.json` in your configuration path to change spaceruns behaviour.
 * [ ] More key-value pairs for command leafs!
     * [ ] "description" to find / understand your nodes & commands, even after a long night.
     * [ ] "clip" copying a string to clipboard.
+    * [ ] "repeat" Repeating last command. Values include:
+        * "global" - Repeat last command, regardless which command it was
+        * "subtree" - Repeat last command executed in the subtree of the command node
+        * "siblings" - Repeat last command executed only in the direct children of the command node
+
