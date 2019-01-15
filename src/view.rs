@@ -75,13 +75,13 @@ pub fn handle_event(event: &Event, state: &State) -> Option<SpacerunEvent> {
     None
 }
 
-fn select_command(command: & Command) -> Option<SpacerunEvent> {
+fn select_command(command: &Command) -> Option<SpacerunEvent> {
     match command {
         command @ Command::Node(_) => return Some(SpacerunEvent::SelectCommand(command.clone())),
         Command::Leaf(child_leaf) => {
             CliCommand::new("sh")
                 .arg("-c")
-                .arg(&child_leaf.cmd)
+                .arg(&child_leaf.cmd.to_string())
                 .spawn()
                 .expect("process failed to execute");
             return Some(SpacerunEvent::CloseApplication);
@@ -161,6 +161,40 @@ pub fn update_window_and_window_state(
 pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids: &mut Ids) {
     use conrod::{widget, Colorable, Positionable, Sizeable, Widget};
 
+    let child_canvas = [
+        (
+            ids.head_canvas,
+            widget::Canvas::new()
+                .length(30.0)
+                .pad_left(10.0)
+                .color(color::ORANGE),
+        ),
+        (ids.list_canvas, widget::Canvas::new().color(color::BLUE)),
+    ];
+    // let canvas = widget::Canvas::new()
+    widget::Canvas::new()
+        .color(color::DARK_CHARCOAL)
+        .flow_down(&child_canvas)
+        .set(ids.canvas, ui);
+
+    let breadcrumb_text = state
+        .selection_path
+        .iter()
+        .fold("Root".into(), |acc, selection| {
+            format!("{} > {}", acc, selection.name)
+        });
+    widget::Text::new(&breadcrumb_text)
+        .mid_left_of(ids.head_canvas)
+        .color(color::WHITE)
+        .h_of(ids.head_canvas)
+        .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+        .set(ids.head_breadcrumbs, ui);
+
+    set_command_list(ui, state, command, ids);
+}
+
+fn set_command_list(ui: &mut conrod::UiCell, state: &State, command: &Command, ids: &mut Ids) {
+    use conrod::{widget, Colorable, Positionable, Sizeable, Widget};
 
     let displayed_leafs = command.displayable_children();
 
@@ -177,38 +211,6 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
         ids.command_list_item_name_widget
             .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
     }
-
-
-    let child_canvas = [
-        (
-            ids.head_canvas,
-            widget::Canvas::new()
-                .length(30.0)
-                .pad_left(10.0)
-                .color(color::ORANGE),
-        ),
-        (
-            ids.list_canvas,
-            widget::Canvas::new()
-                .color(color::BLUE),
-        ),
-    ];
-    // let canvas = widget::Canvas::new()
-    widget::Canvas::new()
-        .color(color::DARK_CHARCOAL)
-        .flow_down(&child_canvas)
-        .set(ids.canvas, ui);
-
-    let breadcrumb_text = state.selection_path.iter().fold("Root".into(), |acc, selection| {
-        format!("{} > {}", acc, selection.name)
-    });
-    widget::Text::new(&breadcrumb_text)
-        .mid_left_of(ids.head_canvas)
-        .color(color::WHITE)
-        .h_of(ids.head_canvas)
-        .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
-        .set(ids.head_breadcrumbs, ui);
-
 
     // Generate list displaying the commands
     let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
@@ -249,6 +251,12 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
             .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
             .set(ids.command_list_item_shortcut_widget[i], ui);
 
+        // widget::TextBox::new(&displayed_leafs[i].name)
+        //     .mid_left_of(ids.command_list_item_name_canvas[i])
+        //     .color(color::WHITE)
+        //     .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+        //     .w_of(ids.command_list_item_name_canvas[i])
+        //     .set(ids.command_list_item_name_widget[i], ui);
         widget::Text::new(&displayed_leafs[i].name)
             .mid_left_of(ids.command_list_item_name_canvas[i])
             .color(color::WHITE)
@@ -260,6 +268,74 @@ pub fn set_ui(ref mut ui: conrod::UiCell, state: &State, command: &Command, ids:
         s.set(ui)
     }
 }
+
+// fn set_command_form(ui: &mut conrod::UiCell, state: &State, command: &Command, ids: &mut Ids) {
+//     use conrod::{widget, Colorable, Positionable, Sizeable, Widget};
+//
+//     if let Command::Leaf(command) = command {
+//
+//
+//
+//         // Generate list displaying the commands
+//         let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
+//             .item_size(
+//                 item_height_by_font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+//                     .into(),
+//             )
+//             .scrollbar_on_top()
+//             .mid_top_of(ids.list_canvas)
+//             .w_of(ids.list_canvas)
+//             .h_of(ids.list_canvas)
+//             .set(ids.command_list, ui);
+//
+//         // Generate each command item
+//         while let Some(item) = items.next(ui) {
+//             let i = item.i;
+//
+//             let text_container_canvas = widget::Canvas::new().pad(5.0);
+//             let child_canvas = [
+//                 (
+//                     ids.command_list_item_shortcut_canvas[i],
+//                     text_container_canvas
+//                         .clone()
+//                         .length_weight(0.2)
+//                         .color(color::ORANGE),
+//                 ),
+//                 (
+//                     ids.command_list_item_name_canvas[i],
+//                     text_container_canvas.color(color::CHARCOAL),
+//                 ),
+//             ];
+//             let canvas = widget::Canvas::new().flow_right(&child_canvas);
+//
+//             item.set(canvas, ui);
+//
+//             widget::Text::new(&displayed_leafs[i].shortcut.to_string())
+//                 .middle_of(ids.command_list_item_shortcut_canvas[i])
+//                 .color(color::WHITE)
+//                 .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+//                 .set(ids.command_list_item_shortcut_widget[i], ui);
+//
+//             widget::TextBox::new(&displayed_leafs[i].name)
+//                 .mid_left_of(ids.command_list_item_name_canvas[i])
+//                 .color(color::WHITE)
+//                 .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+//                 .w_of(ids.command_list_item_name_canvas[i])
+//                 .set(ids.command_list_item_name_widget[i], ui);
+//             // widget::Text::new(&displayed_leafs[i].name)
+//             //     .mid_left_of(ids.command_list_item_name_canvas[i])
+//             //     .color(color::WHITE)
+//             //     .font_size(state.config.font_size.unwrap_or(DEFAULT_FONT_SIZE))
+//             //     .set(ids.command_list_item_name_widget[i], ui);
+//         }
+//
+//         if let Some(s) = scrollbar {
+//             s.set(ui)
+//         }
+//     } else {
+//         return;
+//     }
+// }
 
 /// Calculate the items height by the given font size
 fn item_height_by_font_size(font_size: u32) -> u32 {
