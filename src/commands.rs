@@ -1,9 +1,10 @@
-use std::str::FromStr;
+use std::collections::HashMap;
 use std::fmt::{self, Display};
+use std::str::FromStr;
 
-use serde_derive::Deserialize;
+use regex::{Regex, RegexBuilder};
 use serde::de;
-use regex::Regex;
+use serde_derive::Deserialize;
 
 use crate::bindings::Shortcut;
 
@@ -29,8 +30,6 @@ pub enum Command {
     Leaf(CommandLeaf),
 }
 
-
-
 #[derive(Copy, Clone)]
 pub struct CommandTaskParseError;
 impl Display for CommandTaskParseError {
@@ -49,8 +48,8 @@ impl fmt::Debug for CommandTaskParseError {
  */
 #[derive(Debug, Clone)]
 pub struct CommandTask {
-    base: String,
-    variables: Vec<CommandTaskVariable>,
+    pub base: String,
+    pub variables: Vec<CommandTaskVariable>,
 }
 
 impl Display for CommandTask {
@@ -59,22 +58,55 @@ impl Display for CommandTask {
     }
 }
 
+#[derive(Debug)]
+struct CommandTaskReplaceValuesError;
+impl std::error::Error for CommandTaskReplaceValuesError {}
+impl fmt::Display for CommandTaskReplaceValuesError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Could not replace the placeholders in the CommandTask string"
+        )
+    }
+}
+
 impl FromStr for CommandTask {
     type Err = CommandTaskParseError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-
         let template_regex = Regex::new(r"\{\{(.+?)\}\}").unwrap();
 
         let mut variables = vec![];
         for template_data in template_regex.captures_iter(value) {
-            variables.push(CommandTaskVariable { name: template_data[1].into() });
+            variables.push(CommandTaskVariable {
+                name: template_data[1].into(),
+                // TODO Add default value parsing
+                default_value: None,
+            });
         }
 
         Ok(CommandTask {
             base: value.into(),
-            variables: variables
+            variables: variables,
         })
+    }
+}
+
+impl CommandTask {
+    pub fn to_executable_string(
+        &self,
+        variables: HashMap<String, String>,
+    ) -> Result<String, Box<std::error::Error>> {
+        let mut output = self.base.clone();
+        for task_variable in &self.variables {
+            let value = variables
+                .get(&task_variable.name)
+                .ok_or(CommandTaskReplaceValuesError)?;
+            let match_string = format!("\\{{\\{{{}\\}}\\}}", task_variable.name);
+            let re = RegexBuilder::new(&match_string).build()?;
+            output = re.replace_all(&output, value.as_str()).to_string();
+        }
+        Ok(output)
     }
 }
 
@@ -88,16 +120,14 @@ impl<'de> de::Deserialize<'de> for CommandTask {
     }
 }
 
-
 /**
  * A variable value in a command task, to be filled in e.g. by a form
  */
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandTaskVariable {
-    name: String,
+    pub name: String,
+    pub default_value: Option<String>,
 }
-
-
 
 /**
  * Easily displayable command

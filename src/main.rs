@@ -1,12 +1,17 @@
+use std::process::Command as CliCommand;
+
 use conrod::backend::glium::glium::glutin::os::unix::WindowBuilderExt;
 use conrod::backend::glium::glium::{self, Surface};
 use conrod::backend::glium::Renderer;
 use structopt::StructOpt;
 
 use crate::bindings::Shortcut;
+use crate::commands::Command;
 use crate::event_loop::EventLoop;
-use crate::state::State;
-use crate::view::SpacerunEvent::{CloseApplication, FocusLost, PrevLevelCommand, SelectCommand};
+use crate::state::{init_variables_form_input, State};
+use crate::view::SpacerunEvent::{
+    CloseApplication, ExecuteCommandTask, FocusLost, PrevLevelCommand, SelectCommand,
+};
 use crate::view::{
     handle_event, rendered_elements_height, set_ui, update_initial_window_state,
     update_window_and_window_state, Ids,
@@ -99,6 +104,10 @@ fn main() {
                     state
                         .selection_path
                         .push(state.selected_command.clone().into());
+                    if let Command::Leaf(command_leaf) = &state.selected_command {
+                        let x = &command_leaf.cmd.variables;
+                        init_variables_form_input(&mut state.form_command_task_variables, x);
+                    }
                 }
                 Some(PrevLevelCommand) => {
                     if state.selection_path.pop().is_some() {
@@ -120,10 +129,60 @@ fn main() {
                         .set_cursor_position((0, 0).into())
                         .unwrap();
                 }
+                Some(ExecuteCommandTask(cmd, variables)) => {
+                    let cmd_string = cmd.to_executable_string(variables);
+                    match cmd_string {
+                        Ok(cmd_string) => {
+                            CliCommand::new("sh")
+                                .arg("-c")
+                                .arg(cmd_string)
+                                .spawn()
+                                .expect("process failed to execute");
+                            break 'main;
+                        },
+                        Err(error) => eprintln!("Error replacing cmd task vars! {}", error),
+                    }
+                }
                 Some(CloseApplication) => break 'main,
                 None => (),
             }
         }
+        // FIXME (PE) To use conrods own events or not?
+        //   all its examples use the glium backend events, not the conrod ones for custom event
+        //   handling in user code.
+        //
+        // ui.global_input().events().for_each(|event| {
+        //     use conrod::event::Text;
+        //     use conrod::event::{Event, Ui};
+        //     match event {
+        //         Event::Ui(x) => {
+        //             match x {
+        //                 Ui::Text(widget_id, text_value) => {
+        //                     if let Some(widget_id) = widget_id {
+        //                         println!("Text Evnet | Input WidgetId {:?} ; {:?}", widget_id, x);
+        //                         println!("{:?}", ids
+        //                                 .command_variables_form_inputs
+        //                                 .iter().any(|input_widget_id| {
+        //                                     println!("{:?}", input_widget_id);
+        //                                     input_widget_id[widget_id]
+        //                                 } ));
+        //                         println!("Text Evnet | Input WidgetId {:?} ; {:?}", widget_id, x);
+        //                         if state.form_command_task_variables.len() > 0
+        //                             && ids
+        //                                 .command_variables_form_inputs
+        //                                 .iter().any(|input_widget_id| input_widget_id == widget_id)
+        //                         {
+        //                             println!("Input widget event: ||| {:?}", text_value);
+        //                         }
+        //                         // Some text input on some widget
+        //                     }
+        //                 }
+        //                 _ => {}
+        //             }
+        //         }
+        //         _ => {}
+        //     }
+        // });
         render(
             &mut state,
             &mut ui,
@@ -143,7 +202,7 @@ fn render(
     display: &glium::Display,
     image_map: &conrod::image::Map<glium::texture::Texture2d>,
 ) {
-    set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
+    set_ui(ui.set_widgets(), state, ids);
 
     // Render the `Ui` and then display it on the screen.
     if let Some(primitives) = ui.draw_if_changed() {
