@@ -270,18 +270,18 @@ fn set_command_list(ui: &mut conrod::UiCell, state: &State, ids: &mut Ids) {
     let displayed_leafs = state.selected_command.displayable_children();
 
     // Make sure we have enough Ids for the displayed items
-    if displayed_leafs.len() != ids.command_list_item_canvas.len() {
-        ids.command_list_item_canvas
-            .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-        ids.command_list_item_shortcut_canvas
-            .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-        ids.command_list_item_name_canvas
-            .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-        ids.command_list_item_shortcut_widget
-            .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-        ids.command_list_item_name_widget
-            .resize(displayed_leafs.len(), &mut ui.widget_id_generator());
-    }
+
+    let mut resize_id_list = |id_list: &mut conrod::widget::id::List| {
+        if displayed_leafs.len() != id_list.len() {
+            id_list.resize(displayed_leafs.len(), &mut ui.widget_id_generator());
+        }
+    };
+
+    resize_id_list(&mut ids.command_list_item_canvas);
+    resize_id_list(&mut ids.command_list_item_shortcut_canvas);
+    resize_id_list(&mut ids.command_list_item_name_canvas);
+    resize_id_list(&mut ids.command_list_item_shortcut_widget);
+    resize_id_list(&mut ids.command_list_item_name_widget);
 
     // Generate list displaying the commands
     let (mut items, scrollbar) = widget::List::flow_down(displayed_leafs.len())
@@ -346,16 +346,17 @@ fn set_command_form(ui: &mut conrod::UiCell, state: &mut State, ids: &mut Ids) {
     if let Command::Leaf(command) = &state.selected_command {
         let variables = &command.cmd.variables;
 
-        if variables.len() != ids.command_variables_form_inputs.len() {
-            ids.command_variables_form_input_canvas
-                .resize(variables.len(), &mut ui.widget_id_generator());
-            ids.command_variables_form_inputs
-                .resize(variables.len(), &mut ui.widget_id_generator());
-            ids.command_list_item_shortcut_widget
-                .resize(variables.len(), &mut ui.widget_id_generator());
-            ids.command_list_item_shortcut_canvas
-                .resize(variables.len(), &mut ui.widget_id_generator());
-        }
+
+        let mut resize_id_list = |id_list: &mut conrod::widget::id::List| {
+            if variables.len() != id_list.len() {
+                id_list.resize(variables.len(), &mut ui.widget_id_generator());
+            }
+        };
+
+        resize_id_list(&mut ids.command_variables_form_input_canvas);
+        resize_id_list(&mut ids.command_variables_form_inputs);
+        resize_id_list(&mut ids.command_list_item_shortcut_widget);
+        resize_id_list(&mut ids.command_list_item_shortcut_canvas);
 
         // Generate list displaying the inputs
         let (mut items, scrollbar) = widget::List::flow_down(variables.len())

@@ -34,7 +34,10 @@ impl State {
     }
 }
 
-pub fn init_variables_form_input(form_command_task_variables: &mut HashMap<String, String>, variables: &Vec<CommandTaskVariable>) {
+pub fn init_variables_form_input(
+    form_command_task_variables: &mut HashMap<String, String>,
+    variables: &[CommandTaskVariable],
+) {
     *form_command_task_variables = variables
         .iter()
         .map(|variable| {
@@ -57,4 +60,3 @@ fn select_initial_command(config: &SpacerunConfig, options: &Options) -> Command
 
     command.to_owned()
 }
-

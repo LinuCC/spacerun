@@ -76,14 +76,16 @@ impl FromStr for CommandTask {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let template_regex = Regex::new(r"\{\{(.+?)\}\}").unwrap();
 
-        let mut variables = vec![];
-        for template_data in template_regex.captures_iter(value) {
-            variables.push(CommandTaskVariable {
-                name: template_data[1].into(),
-                // TODO Add default value parsing
-                default_value: None,
-            });
-        }
+        let variables = template_regex
+            .captures_iter(value)
+            .map(|template_data| {
+                CommandTaskVariable {
+                    name: template_data[1].into(),
+                    // TODO Add default value parsing
+                    default_value: None,
+                }
+            })
+            .collect();
 
         Ok(CommandTask {
             base: value.into(),
@@ -95,7 +97,7 @@ impl FromStr for CommandTask {
 impl CommandTask {
     pub fn to_executable_string(
         &self,
-        variables: HashMap<String, String>,
+        variables: &HashMap<String, String>,
     ) -> Result<String, Box<std::error::Error>> {
         let mut output = self.base.clone();
         for task_variable in &self.variables {

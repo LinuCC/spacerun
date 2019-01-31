@@ -130,7 +130,7 @@ fn main() {
                         .unwrap();
                 }
                 Some(ExecuteCommandTask(cmd, variables)) => {
-                    let cmd_string = cmd.to_executable_string(variables);
+                    let cmd_string = cmd.to_executable_string(&variables);
                     match cmd_string {
                         Ok(cmd_string) => {
                             CliCommand::new("sh")
