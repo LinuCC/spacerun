@@ -34,6 +34,8 @@ Edit `config.json` in your configuration path to change spaceruns behaviour.
 
 # ToDos
 
+* [ ] **Blocking** Switch to a framework that supports input focusing, as I am unable to do so with the current one. (Maybe try Azul, as its the cool new kid on the block?)
+
 * [ ] Generate default config file if it is missing
 * [ ] Replace `unwrap()`s with real error handling & good error messages
   * [ ] Errors
