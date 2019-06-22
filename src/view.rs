@@ -11,7 +11,23 @@ use crate::{SpacerunApp, SpacerunEvent};
 static DEFAULT_FONT_SIZE: u32 = 14;
 
 pub fn render_app(app: &SpacerunApp, layout_info: LayoutInfo<SpacerunApp>) -> Dom<SpacerunApp> {
-    let app_container = Dom::div().with_id("app_container");
+    let mut app_container = Dom::div().with_id("app_container");
+
+    let breadcrumb_text = app
+        .state
+        .selection_path
+        .iter()
+        .fold("Root".into(), |acc, selection| {
+            format!("{} > {}", acc, selection.name)
+        });
+
+    app_container = app_container.with_child(
+        Dom::div().with_id("app_heading").with_child(
+            Dom::div()
+                .with_id("breadcrumb_container")
+                .with_child(Dom::label(breadcrumb_text)),
+        ),
+    );
     match app.state.selected_command {
         Command::Node(_) => app_container.with_child(render_command_select_list(app, layout_info)),
         Command::Leaf(_) => app_container.with_child(render_command_form(app, layout_info)),
@@ -23,7 +39,7 @@ fn handle_keyboard_input(mut info: CallbackInfo<SpacerunApp>) -> Option<()> {
     if let Some(key_code) = keyboard_state.latest_virtual_keycode {
         let app = &mut info.state.data;
 
-        if key_code == VirtualKeyCode::Back {
+        if key_code == VirtualKeyCode::Escape {
             app.handle_event(SpacerunEvent::PrevLevelCommand);
             return Some(());
         }

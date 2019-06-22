@@ -132,16 +132,21 @@ impl SpacerunApp {
                     if let Some(new_command) = new_command {
                         self.state.selected_command = new_command.clone();
                     }
+                } else {
+                    close_application();
                 }
             }
             FocusLost => {
                 // FIXME LinuCC Implement
                 println!("WHAAAAA");
             }
-            // FIXME LinuCC Panic, lul
-            CloseApplication => panic!("App closed normally :kappa:"),
+            CloseApplication => close_application(),
         }
     }
+}
+
+fn close_application() {
+    std::process::exit(0);
 }
 
 // impl Layout for TestCrudApp {
