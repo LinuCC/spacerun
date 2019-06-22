@@ -1,5 +1,3 @@
-use conrod::glium::glutin::dpi::{LogicalPosition, LogicalSize};
-
 use crate::commands::{Command, CommandDisplay};
 use crate::config::SpacerunConfig;
 use crate::Options;
@@ -8,8 +6,8 @@ const DEFAULT_WINDOW_WIDTH: f64 = 500.0;
 const DEFAULT_WINDOW_HEIGHT: f64 = 400.0;
 
 pub struct State {
-    pub window_position: LogicalPosition,
-    pub window_dimensions: LogicalSize,
+    // pub window_position: LogicalPosition,
+    // pub window_dimensions: LogicalSize,
     pub config: SpacerunConfig,
     pub selected_command: Command,
     pub selection_path: Vec<CommandDisplay>,
@@ -19,8 +17,8 @@ pub struct State {
 impl State {
     pub fn new(config: SpacerunConfig, options: Options) -> State {
         let state = State {
-            window_dimensions: (DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT).into(),
-            window_position: (0, 0).into(),
+            // window_dimensions: (DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT).into(),
+            // window_position: (0, 0).into(),
             selected_command: select_initial_command(&config, &options),
             selection_path: vec![],
             config,

@@ -1,14 +1,14 @@
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
-use conrod::backend::glium::glium::glutin::{ModifiersState, VirtualKeyCode};
+use azul::window::VirtualKeyCode;
 use serde::de;
 
 /**
  * A pressed key
  */
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KeyCode(VirtualKeyCode);
+pub struct KeyCode(pub VirtualKeyCode);
 
 impl FromStr for KeyCode {
     type Err = ShortcutFromStrError;
@@ -102,6 +102,7 @@ impl Display for KeyCode {
             VirtualKeyCode::Key8 => Some("8"),
             VirtualKeyCode::Key9 => Some("9"),
             VirtualKeyCode::Key0 => Some("0"),
+            VirtualKeyCode::Space => Some("SPC"),
             _ => None,
         };
 
@@ -113,6 +114,14 @@ impl Display for KeyCode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModifiersState {
+    pub ctrl_down: bool,
+    pub alt_down: bool,
+    pub shift_down: bool,
+    pub super_down: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Shortcut {
     pub key_code: KeyCode,
     pub modifiers: ModifiersState,
@@ -120,16 +129,16 @@ pub struct Shortcut {
 
 impl Display for Shortcut {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.modifiers.ctrl {
+        if self.modifiers.ctrl_down {
             write!(f, "C-")?;
         }
-        if self.modifiers.alt {
+        if self.modifiers.alt_down {
             write!(f, "M-")?;
         }
-        if self.modifiers.shift {
+        if self.modifiers.shift_down {
             write!(f, "S-")?;
         }
-        if self.modifiers.logo {
+        if self.modifiers.super_down {
             write!(f, "L-")?;
         }
         write!(f, "{}", self.key_code)
@@ -143,15 +152,15 @@ impl FromStr for Shortcut {
         let keys: Vec<&str> = value.split('-').collect::<Vec<&str>>();;
         if let Some((key_code_string, modifier_strings)) = keys.split_last() {
             let modifiers = ModifiersState {
-                ctrl: modifier_strings.contains(&"C"),
-                alt: modifier_strings.contains(&"M"),
-                shift: modifier_strings.contains(&"S"),
-                logo: modifier_strings.contains(&"L"),
+                ctrl_down: modifier_strings.contains(&"C"),
+                alt_down: modifier_strings.contains(&"M"),
+                shift_down: modifier_strings.contains(&"S"),
+                super_down: modifier_strings.contains(&"L"),
             };
             let key_code = key_code_string.parse()?;
             Ok(Shortcut {
                 modifiers,
-                key_code
+                key_code,
             })
         } else {
             Err(ShortcutFromStrError)

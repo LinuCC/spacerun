@@ -6,13 +6,13 @@ use directories::ProjectDirs;
 use serde_derive::Deserialize;
 
 use crate::commands::Command;
-use crate::window_position::WindowPosition;
+// use crate::window_position::WindowPosition;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SpacerunConfig {
     pub commands: Command,
     pub font_size: Option<u32>,
-    pub position: Option<WindowPosition>,
+    // pub position: Option<WindowPosition>,
 }
 
 pub fn load_config() -> Result<SpacerunConfig, Box<Error>> {

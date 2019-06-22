@@ -6,7 +6,7 @@ authors = ["Pascal Ernst <linucc@linu.cc>", "Florian Diebold <flodiebold@gmail.c
 edition = "2018"
 
 [dependencies]
-conrod = { version = "0.61.1", features = ["glium", "winit"] }
+azul = { git = "https://github.com/linucc/azul", rev = "ce533867ec26b34229f525d0ce523a0ddd94c88a" }
 serde = "1"
 serde_derive = "1"
 serde_json = "1.0"

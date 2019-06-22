@@ -1,26 +1,34 @@
-use conrod::backend::glium::glium::glutin::os::unix::WindowBuilderExt;
-use conrod::backend::glium::glium::{self, Surface};
-use conrod::backend::glium::Renderer;
+use azul::dom::{NodeId, TabIndex};
+use azul::prelude::*;
+use azul::widgets::text_input::*;
+use azul::window::WinitXWindowType;
 use structopt::StructOpt;
 
 use crate::bindings::Shortcut;
-use crate::event_loop::EventLoop;
+use crate::commands::Command;
 use crate::state::State;
-use crate::view::SpacerunEvent::{CloseApplication, FocusLost, PrevLevelCommand, SelectCommand};
-use crate::view::{
-    handle_event, rendered_elements_height, set_ui, update_initial_window_state,
-    update_window_and_window_state, Ids,
-};
+use crate::view::render_app;
 
 mod bindings;
 mod commands;
 mod config;
-mod event_loop;
 mod state;
 mod view;
-mod window_position;
 
-static FONT: &[u8] = include_bytes!("../assets/fonts/NotoSans/NotoSans-Regular.ttf");
+macro_rules! CSS_PATH {
+    () => {
+        concat!(env!("CARGO_MANIFEST_DIR"), "/src/main.css")
+    };
+}
+macro_rules! FONT_PATH {
+    () => {
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/fonts/NotoSans/NotoSans-Regular.ttf"
+        )
+    };
+}
+const FONT: &[u8] = include_bytes!(FONT_PATH!());
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "spacerun")]
@@ -29,11 +37,170 @@ pub struct Options {
     initial_shortcut: Option<Shortcut>,
 }
 
+pub enum SpacerunEvent {
+    SelectCommand(Command),
+    PrevLevelCommand,
+    FocusLost,
+    CloseApplication,
+}
+
+// struct TestCrudApp {
+//     text_input: TextInputState,
+//     text_input2: TextInputState,
+//     text_input3: TextInputState,
+//     text_input4: TextInputState,
+// }
+//
+// impl Default for TestCrudApp {
+//     fn default() -> Self {
+//         Self {
+//             text_input: TextInputState::new("Hover mouse over rectangle and press keys"),
+//             text_input2: TextInputState::new("Hover mouse over rectangle and press keys"),
+//             text_input3: TextInputState::new("Hover mouse over rectangle and press keys"),
+//             text_input4: TextInputState::new("Hover mouse over rectangle and press keys"),
+//         }
+//     }
+// }
+//
+fn on_text_input_focus(mut callback_info: CallbackInfo<SpacerunApp>) -> Option<()> {
+    let (dom_id, node_id) = callback_info.hit_dom_node.clone();
+    // let node = callback_info
+    //     .get_node(&(dom_id.clone(), node_id.clone()))
+    //     .unwrap()
+    //     .clone();
+
+    // println!(
+    //     "{:?}",
+    //     callback_info.get_node(&callback_info.hit_dom_node.clone())
+    // );
+    // let node_hierarchy = callback_info.get_node_hierarchy().clone();
+    // let next_sibling: Option<NodeId> = node_id.following_siblings(&node_hierarchy).nth(1);
+    // if let Some(next_sibling) = next_sibling {
+    //     println!(
+    //         "setting focus to {:?}",
+    //         (
+    //             dom_id.clone(),
+    //             next_sibling.children(&node_hierarchy).next().unwrap()
+    //         )
+    //     );
+    //     callback_info.set_focus_from_node_id((
+    //         dom_id,
+    //         next_sibling.children(&node_hierarchy).next().unwrap(),
+    //     ));
+    //     Some(())
+    // } else {
+    //     println!("No focus :(");
+    //     None
+    // }
+    // FIXME Ugly, but for some reason code above does not work.
+    if let Some(index) = callback_info.target_index_in_parent() {
+        callback_info.set_focus_from_css(&format!("#text_input_{}", index + 2));
+        Some(())
+    } else {
+        None
+    }
+}
+
+pub struct SpacerunApp {
+    pub state: State,
+}
+
+impl Layout for SpacerunApp {
+    fn layout(&self, info: LayoutInfo<Self>) -> Dom<Self> {
+        render_app(self, info)
+    }
+}
+
+impl SpacerunApp {
+    fn handle_event(&mut self, event: SpacerunEvent) -> () {
+        use SpacerunEvent::*;
+        match event {
+            SelectCommand(new_selected_command) => {
+                self.state.selected_command = new_selected_command.clone();
+                self.state
+                    .selection_path
+                    .push(self.state.selected_command.clone().into());
+            }
+            PrevLevelCommand => {
+                if self.state.selection_path.pop().is_some() {
+                    let new_command = self.state.selection_path.iter().try_fold(
+                        &self.state.config.commands,
+                        |acc, command_display| {
+                            acc.find_child_for_shortcut(&command_display.shortcut)
+                        },
+                    );
+                    if let Some(new_command) = new_command {
+                        self.state.selected_command = new_command.clone();
+                    }
+                }
+            }
+            FocusLost => {
+                // FIXME LinuCC Implement
+                println!("WHAAAAA");
+            }
+            // FIXME LinuCC Panic, lul
+            CloseApplication => panic!("App closed normally :kappa:"),
+        }
+    }
+}
+
+// impl Layout for TestCrudApp {
+//     fn layout(&self, info: LayoutInfo<Self>) -> Dom<Self> {
+//         Dom::div()
+//             .with_callback(
+//                 On::VirtualKeyDown,
+//                 |mut callback_info: CallbackInfo<TestCrudApp>| {
+//                     if callback_info.get_keyboard_state().latest_virtual_keycode
+//                         == Some(VirtualKeyCode::Tab)
+//                     {
+//                         callback_info.set_focus_from_css("#text_input_1");
+//                         println!("WATTT");
+//                         Some(())
+//                     } else {
+//                         None
+//                     }
+//                 },
+//             )
+//             .with_id("container")
+//             .with_child(
+//                 TextInput::new()
+//                     .bind(info.window, &self.text_input, &self)
+//                     .dom(&self.text_input)
+//                     .with_tab_index(TabIndex::Auto)
+//                     .with_callback(On::TextInput, on_text_input_focus)
+//                     .with_id("text_input_1"),
+//             )
+//             .with_child(
+//                 TextInput::new()
+//                     .bind(info.window, &self.text_input2, &self)
+//                     .dom(&self.text_input2)
+//                     .with_tab_index(TabIndex::Auto)
+//                     .with_callback(On::TextInput, on_text_input_focus)
+//                     .with_id("text_input_2"),
+//             )
+//             .with_child(
+//                 TextInput::new()
+//                     .bind(info.window, &self.text_input3, &self)
+//                     .dom(&self.text_input3)
+//                     .with_tab_index(TabIndex::Auto)
+//                     .with_callback(On::TextInput, on_text_input_focus)
+//                     .with_id("text_input_3"),
+//             )
+//             .with_child(
+//                 TextInput::new()
+//                     .bind(info.window, &self.text_input4, &self)
+//                     .dom(&self.text_input4)
+//                     .with_tab_index(TabIndex::Auto)
+//                     .with_callback(On::TextInput, on_text_input_focus)
+//                     .with_id("text_input_4"),
+//             )
+//     }
+// }
+//
 fn main() {
     // --- Parse command line args
     let options = Options::from_args();
     eprintln!("options: {:?}", options);
-
     // --- Setup Commands
     let config = config::load_config()
         .expect("Error loading the config. Check your configuration for inconsistencies.");
@@ -41,120 +208,29 @@ fn main() {
     eprintln!("{:?}", config.commands);
 
     let mut state = State::new(config, options);
+    let app = SpacerunApp { state };
 
-    // --- Setup Conrod UI
-    let mut ui = conrod::UiBuilder::new([
-        state.window_dimensions.width,
-        state.window_dimensions.height,
-    ])
-    .build();
-    let mut ids = Ids::new(ui.widget_id_generator());
-    // Add a `Font` to the `Ui`'s `font::Map` from file.
-    ui.fonts
-        .insert(conrod::text::Font::from_bytes(FONT).unwrap());
-    update_initial_window_state(&mut ui, &mut state, &mut ids);
+    let mut app = App::new(app, AppConfig::default()).unwrap();
 
-    // --- Setup Conrod
-    let mut events_loop = glium::glutin::EventsLoop::new();
-    let window = glium::glutin::WindowBuilder::new()
-        .with_title("Spacerun")
-        .with_dimensions(state.window_dimensions)
-        // Mainly so that the window gets opened nicely in i3, but there are
-        // probably better fitting window types.
-        .with_x11_window_type(glium::glutin::os::unix::XWindowType::Utility)
-        // Untested as i3 ignores always_on_top, should help usage with other WMs
-        .with_always_on_top(true)
-        .with_visibility(false)
-        .with_decorations(false);
-    let context = glium::glutin::ContextBuilder::new()
-        .with_vsync(true)
-        .with_multisampling(4);
+    let font_id = app.app_state.resources.add_css_font_id("NotoSans-Regular");
+    app.app_state
+        .resources
+        .add_font_source(font_id, FontSource::Embedded(FONT));
+    let css = css::override_native(include_str!(CSS_PATH!())).unwrap();
 
-    let display = glium::Display::new(window, context, &events_loop).unwrap();
-
-    let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
-
-    // The image map describing each of our widget->image mappings (in our case, none).
-    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
-
-    display.gl_window().show();
-
-    // WindowBuilder has no `with_position`, so we should update the window
-    // with its dimensions directly after it was created.
-    update_window_and_window_state(state.window_dimensions.height, &mut state, &display, true);
-
-    let mut event_loop = EventLoop::new();
-
-    'main: loop {
-        // Handle all events.
-        for event in event_loop.next(&mut events_loop) {
-            // Use the `winit` backend feature to convert the winit event to a conrod one.
-            if let Some(event) = conrod::backend::winit::convert_event(event.clone(), &display) {
-                ui.handle_event(event);
-                event_loop.needs_update();
-            }
-            match handle_event(&event, &state) {
-                Some(SelectCommand(new_selected_command)) => {
-                    state.selected_command = new_selected_command.clone();
-                    state
-                        .selection_path
-                        .push(state.selected_command.clone().into());
-                }
-                Some(PrevLevelCommand) => {
-                    if state.selection_path.pop().is_some() {
-                        let new_command = state.selection_path.iter().try_fold(
-                            &state.config.commands,
-                            |acc, command_display| {
-                                acc.find_child_for_shortcut(&command_display.shortcut)
-                            },
-                        );
-                        if let Some(new_command) = new_command {
-                            state.selected_command = new_command.clone();
-                        }
-                    }
-                }
-                Some(FocusLost) => {
-                    // FIXME LinuCC Find out how Rofi does not lose focus, and implement it here.
-                    display
-                        .gl_window()
-                        .set_cursor_position((0, 0).into())
-                        .unwrap();
-                }
-                Some(CloseApplication) => break 'main,
-                None => (),
-            }
-        }
-        render(
-            &mut state,
-            &mut ui,
-            &mut ids,
-            &mut renderer,
-            &display,
-            &image_map,
-        );
-    }
-}
-
-fn render(
-    state: &mut State,
-    ui: &mut conrod::Ui,
-    ids: &mut Ids,
-    renderer: &mut Renderer,
-    display: &glium::Display,
-    image_map: &conrod::image::Map<glium::texture::Texture2d>,
-) {
-    set_ui(ui.set_widgets(), &state, &state.selected_command, ids);
-
-    // Render the `Ui` and then display it on the screen.
-    if let Some(primitives) = ui.draw_if_changed() {
-        if let Some(height) = rendered_elements_height(ui, ids) {
-            let new_window_height = height;
-            update_window_and_window_state(new_window_height, state, &display, false);
-        }
-        renderer.fill(&display, primitives, &image_map);
-        let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 0.0, 1.0);
-        renderer.draw(display, &mut target, &image_map).unwrap();
-        target.finish().unwrap();
-    }
+    let window = app
+        .create_window(
+            WindowCreateOptions {
+                state: WindowState {
+                    has_decorations: false,
+                    is_always_on_top: true,
+                    ..WindowState::default()
+                },
+                x_window_type: Some(WinitXWindowType::Utility),
+                ..WindowCreateOptions::default()
+            },
+            css,
+        )
+        .unwrap();
+    app.run(window).unwrap();
 }
