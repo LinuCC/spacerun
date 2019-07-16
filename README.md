@@ -1,3 +1,6 @@
+**NOTE** Due to either the state of current Rust GUI libs being a little incomplete I need to test out some libs to see which support the feature-set I need. 
+*It can't be that hard to automatically focus an input field*. Or can it? :suspect:
+
 # Idea
 
 Emacs / Spacemacs like runner, where you hit one key and get send down a tree
