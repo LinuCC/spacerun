@@ -55,7 +55,7 @@ Edit `config.json` in your configuration path to change spaceruns behaviour.
 
 ## Cool & shiny things to implement
 
-* [ ] Auto-generate a form by placeholders in the command (e.g. `${'My Field Name': default val}`)
+* [x] Auto-generate a form by placeholders in the command (e.g. `${'My Field Name': default val}`)
 * [ ] Context sensitive commands
     * [ ] Prev focused window. I could have added a `"class": "^chromium"` to the commands config.
           This option will only show if chromium was focused previous to spacerun being opened.
@@ -70,10 +70,11 @@ Edit `config.json` in your configuration path to change spaceruns behaviour.
       (Also solvable by using a CLI interface (not yet implemented), but not as cool?)
 * [ ] Server mode, instance is constantly running in background so the JSON won't need to be parsed
       each time the window should be displayed.
-* [ ] Breadcrumbs, showing the path you went down.
+* [x] Breadcrumbs, showing the path you went down.
 * [ ] Show name and description of the current tree as a title / subtitle of the window
 * [ ] Radial menu instead of list as option (Because radial menus are awesome!)
 * [ ] Unicode / emoticons / ligatures / FontAwesome support
+* [ ] dmenu parameter mode (similar to rofi)
 * [ ] More key-value pairs for command leafs!
     * [ ] "description" to find / understand your nodes & commands, even after a long night.
     * [ ] "clip" copying a string to clipboard.

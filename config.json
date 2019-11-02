@@ -29,6 +29,11 @@
         "shortcut": "f",
         "name": "firefox",
         "cmd": "firefox"
+      },
+      {
+        "shortcut": "h",
+        "name": "Example templating form",
+        "cmd": "echo {{text}}; echo \"===========\n\"; {{postcmd}}"
       }
     ]
   }

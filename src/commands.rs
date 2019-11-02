@@ -1,3 +1,9 @@
+use std::collections::HashMap;
+use std::fmt::{self, Display};
+use std::str::FromStr;
+
+use regex::{Regex, RegexBuilder};
+use serde::de;
 use serde_derive::Deserialize;
 
 use crate::bindings::Shortcut;
@@ -6,7 +12,7 @@ use crate::bindings::Shortcut;
 pub struct CommandNode {
     pub shortcut: Shortcut,
     pub name: String,
-    pub cmd: Option<String>,
+    pub cmd: Option<CommandTask>,
     pub children: Vec<Command>,
 }
 
@@ -14,7 +20,7 @@ pub struct CommandNode {
 pub struct CommandLeaf {
     pub shortcut: Shortcut,
     pub name: String,
-    pub cmd: String,
+    pub cmd: CommandTask,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -22,6 +28,107 @@ pub struct CommandLeaf {
 pub enum Command {
     Node(CommandNode),
     Leaf(CommandLeaf),
+}
+
+#[derive(Copy, Clone)]
+pub struct CommandTaskParseError;
+impl Display for CommandTaskParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Failed to parse a command task")
+    }
+}
+impl fmt::Debug for CommandTaskParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Failed to parse a command task")
+    }
+}
+
+/**
+ * The executable part of a command.
+ */
+#[derive(Debug, Clone)]
+pub struct CommandTask {
+    pub base: String,
+    pub variables: Vec<CommandTaskVariable>,
+}
+
+impl Display for CommandTask {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.base)
+    }
+}
+
+#[derive(Debug)]
+struct CommandTaskReplaceValuesError;
+impl std::error::Error for CommandTaskReplaceValuesError {}
+impl fmt::Display for CommandTaskReplaceValuesError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Could not replace the placeholders in the CommandTask string"
+        )
+    }
+}
+
+impl FromStr for CommandTask {
+    type Err = CommandTaskParseError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let template_regex = Regex::new(r"\{\{(.+?)\}\}").unwrap();
+
+        let variables = template_regex
+            .captures_iter(value)
+            .map(|template_data| {
+                CommandTaskVariable {
+                    name: template_data[1].into(),
+                    // TODO Add default value parsing
+                    default_value: None,
+                }
+            })
+            .collect();
+
+        Ok(CommandTask {
+            base: value.into(),
+            variables: variables,
+        })
+    }
+}
+
+impl CommandTask {
+    pub fn to_executable_string(
+        &self,
+        variables: &HashMap<String, String>,
+    ) -> Result<String, Box<std::error::Error>> {
+        let mut output = self.base.clone();
+        for task_variable in &self.variables {
+            let value = variables
+                .get(&task_variable.name)
+                .ok_or(CommandTaskReplaceValuesError)?;
+            let match_string = format!("\\{{\\{{{}\\}}\\}}", task_variable.name);
+            let re = RegexBuilder::new(&match_string).build()?;
+            output = re.replace_all(&output, value.as_str()).to_string();
+        }
+        Ok(output)
+    }
+}
+
+impl<'de> de::Deserialize<'de> for CommandTask {
+    fn deserialize<D>(deserializer: D) -> Result<CommandTask, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
+/**
+ * A variable value in a command task, to be filled in e.g. by a form
+ */
+#[derive(Debug, Clone, Deserialize)]
+pub struct CommandTaskVariable {
+    pub name: String,
+    pub default_value: Option<String>,
 }
 
 /**
@@ -55,7 +162,7 @@ impl From<CommandLeaf> for CommandDisplay {
     fn from(node: CommandLeaf) -> Self {
         CommandDisplay {
             shortcut: node.shortcut,
-            name: node.name,
+            name: node.name.to_string(),
         }
     }
 }
